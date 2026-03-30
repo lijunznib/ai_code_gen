@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "axios": "^1.13.6"
+  },
+  "devDependencies": {
+    "@umijs/openapi": "^1.14.1"
+  }
+}
