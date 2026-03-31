@@ -1,5 +1,6 @@
 package com.example.li_ai_code_mother.service;
 
+import com.example.li_ai_code_mother.model.entity.User;
 import com.example.li_ai_code_mother.model.vo.AppVO;
 import com.mybatisflex.core.service.IService;
 import com.example.li_ai_code_mother.model.entity.App;
@@ -11,6 +12,7 @@ import com.example.li_ai_code_mother.model.dto.app.AppUpdateRequest;
 import com.example.li_ai_code_mother.model.dto.app.AppQueryRequest;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -45,7 +47,22 @@ public interface AppService extends IService<App> {
     QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest);
 
 
+    /**
+     * 聊天生成代码
+     * @param appID
+     * @param message
+     * @param loginUser
+     * @return
+     */
+    Flux<String> chatToGenCode(Long appID , String message , User loginUser);
 
+    /**
+     * 网站应用部署
+     * @param appID
+     * @param loginUser
+     * @return
+     */
+    String deployApp(Long appID , User loginUser);
 
     long userAddApp(AppAddRequest request, Long userId);
 
