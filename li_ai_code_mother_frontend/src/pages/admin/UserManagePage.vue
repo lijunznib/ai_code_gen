@@ -3,10 +3,9 @@ import { ref, reactive, onMounted, h } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import type { ColumnsType } from 'ant-design-vue/es/table'
 import { listUserVoByPage, remove, updateUser } from '@/api/userController'
-import type { UserVO, UserUpdateRequest } from '@/api/typings'
 
 // 表格数据
-const dataSource = ref<UserVO[]>([])
+const dataSource = ref<API.UserVO[]>([])
 const loading = ref(false)
 const total = ref(0)
 
@@ -27,8 +26,8 @@ const pagination = reactive({
 
 // 编辑弹窗控制
 const editModalVisible = ref(false)
-const editingUser = ref<UserVO | null>(null)
-const editForm = reactive<UserUpdateRequest>({
+const editingUser = ref<API.UserVO | null>(null)
+const editForm = reactive<API.UserUpdateRequest>({
   id: undefined,
   userName: '',
   userAvatar: '',
@@ -92,7 +91,7 @@ const handleReset = () => {
 /**
  * 删除用户
  */
-const handleDelete = (record: UserVO) => {
+const handleDelete = (record: API.UserVO) => {
   Modal.confirm({
     title: '确认删除',
     content: `确定要删除用户 "${record.userName || record.userAccount}" 吗？此操作不可恢复。`,
@@ -119,7 +118,7 @@ const handleDelete = (record: UserVO) => {
 /**
  * 打开编辑弹窗
  */
-const handleEdit = (record: UserVO) => {
+const handleEdit = (record: API.UserVO) => {
   editingUser.value = record
   editForm.id = record.id
   editForm.userName = record.userName || ''
@@ -164,7 +163,7 @@ const handleEditSubmit = async () => {
 /**
  * 表格列定义
  */
-const columns: ColumnsType<UserVO> = [
+const columns: ColumnsType<API.UserVO> = [
   {
     title: 'ID',
     dataIndex: 'id',

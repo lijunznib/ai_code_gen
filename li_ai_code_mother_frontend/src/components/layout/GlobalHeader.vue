@@ -38,6 +38,10 @@ const menuItems = computed<MenuProps['items']>(() => [
           key: '/admin/userManage',
           label: '用户管理',
         },
+        {
+          key: '/admin/appManage',
+          label: '应用管理',
+        },
       ]
     : []),
 ])

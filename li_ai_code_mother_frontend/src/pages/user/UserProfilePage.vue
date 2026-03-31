@@ -5,7 +5,6 @@ import { message } from 'ant-design-vue'
 import type { FormInstance } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { updateUser, getUserVoById } from '@/api/userController'
-import type { UserUpdateRequest } from '@/api/typings'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -14,7 +13,7 @@ const formRef = ref<FormInstance>()
 const submitting = ref(false)
 
 // 表单数据
-const formState = reactive<UserUpdateRequest>({
+const formState = reactive<API.UserUpdateRequest>({
   id: undefined,
   userName: '',
   userAvatar: '',

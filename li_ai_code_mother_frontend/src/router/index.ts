@@ -4,6 +4,9 @@ import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
 import UserProfilePage from '@/pages/user/UserProfilePage.vue'
+import AppChatPage from '@/pages/app/AppChatPage.vue'
+import AppEditPage from '@/pages/app/AppEditPage.vue'
+import AppManagePage from '@/pages/admin/AppManagePage.vue'
 
 
 const router = createRouter({
@@ -30,9 +33,24 @@ const router = createRouter({
       component: UserManagePage,
     },
     {
+      path: '/admin/appManage',
+      name: '应用管理',
+      component: AppManagePage,
+    },
+    {
       path: '/user/profile',
       name: '个人中心',
       component: UserProfilePage,
+    },
+    {
+      path: '/app/chat/:appId',
+      name: '应用对话页',
+      component: AppChatPage,
+    },
+    {
+      path: '/app/edit/:appId',
+      name: '应用信息修改页',
+      component: AppEditPage,
     },
   ],
 })
