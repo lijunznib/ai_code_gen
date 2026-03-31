@@ -62,7 +62,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserName("李军");
         user.setUserProfile("ai应用开发平台");
         user.setUserAvatar("/home/user/IdeaProjects/li_ai_code_mother/li_ai_code_mother_frontend/src/assets/aiAvatar.png");
-        user.setUserRole(UserRoleEnum.ADMIN.getValue());
+        user.setUserRole(UserRoleEnum.USER.getValue());
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
