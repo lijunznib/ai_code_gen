@@ -2,6 +2,7 @@ package com.example.li_ai_code_mother.core;
 
 import com.example.li_ai_code_mother.ai.AiCodeGeneratorService;
 
+import com.example.li_ai_code_mother.ai.AiCodeGeneratorServiceFactory;
 import com.example.li_ai_code_mother.core.parser.CodeParserExecutor;
 import com.example.li_ai_code_mother.core.saver.CodeFileSaverExecutor;
 import com.example.li_ai_code_mother.exception.BusinessException;
@@ -23,6 +24,7 @@ import java.io.File;
 public class AiCodeGeneratorFacade {
 
     @Resource
+//    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
     private AiCodeGeneratorService aiCodeGeneratorService;
 
     /**
@@ -37,6 +39,8 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
         }
+//        //根据appid获取相应的服务实例
+//        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appID);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
@@ -54,7 +58,6 @@ public class AiCodeGeneratorFacade {
     }
 
 
-
     /**
      * 统一入口：根据类型生成并保存代码(流式)
      *
@@ -67,6 +70,8 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
         }
+//        //根据appid获取相应的服务实例
+//        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appID);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
