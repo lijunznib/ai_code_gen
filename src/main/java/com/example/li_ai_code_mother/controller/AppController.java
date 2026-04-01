@@ -88,7 +88,6 @@ public class AppController {
     }
 
 
-
     /**
      * 创建应用
      *

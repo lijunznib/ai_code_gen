@@ -1,640 +1,576 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useLoginUserStore } from '@/stores/loginUser'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  AppstoreOutlined,
-  RocketOutlined,
-  ThunderboltOutlined,
-  CodeOutlined,
-  CloudSyncOutlined,
-  SafetyOutlined,
-  ArrowRightOutlined,
-} from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
+import { useLoginUserStore } from '@/stores/loginUser'
+import { addApp, listMyAppVoByPage, listGoodAppVoByPage } from '@/api/appController'
+import { getDeployUrl } from '@/config/env'
+import AppCard from '@/components/AppCard.vue'
 
-interface Feature {
-  title: string
-  description: string
-  icon: any
-  color: string
+const router = useRouter()
+const loginUserStore = useLoginUserStore()
+
+// 用户提示词
+const userPrompt = ref('')
+const creating = ref(false)
+
+// 我的应用数据
+const myApps = ref<API.AppVO[]>([])
+const myAppsPage = reactive({
+  current: 1,
+  pageSize: 6,
+  total: 0,
+})
+
+// 精选应用数据
+const featuredApps = ref<API.AppVO[]>([])
+const featuredAppsPage = reactive({
+  current: 1,
+  pageSize: 6,
+  total: 0,
+})
+
+// 设置提示词
+const setPrompt = (prompt: string) => {
+  userPrompt.value = prompt
 }
 
-const loginUserStore = useLoginUserStore()
-const router = useRouter()
+// 优化提示词功能已移除
 
-// 计算属性：是否已登录
-const isLoggedIn = computed(() => !!loginUserStore.loginUser?.id)
+// 创建应用
+const createApp = async () => {
+  if (!userPrompt.value.trim()) {
+    message.warning('请输入应用描述')
+    return
+  }
 
-// 计算属性：登录用户显示名称
-const userDisplayName = computed(() => loginUserStore.loginUser?.userName ?? '访客')
+  if (!loginUserStore.loginUser.id) {
+    message.warning('请先登录')
+    await router.push('/user/login')
+    return
+  }
 
-// 计算属性：用户头像 URL
-const userAvatar = computed(() => loginUserStore.loginUser?.userAvatar || undefined)
+  creating.value = true
+  try {
+    const res = await addApp({
+      initPrompt: userPrompt.value.trim(),
+    })
 
-// 核心功能列表
-const coreFeatures: Feature[] = [
-  {
-    title: '智能代码生成',
-    description:
-      '基于先进 AI 技术，理解您的需求描述，自动生成完整的前后端代码，支持 Vue、React、Spring Boot 等多种主流框架。',
-    icon: AppstoreOutlined,
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  },
-  {
-    title: '快速部署上线',
-    description:
-      '一键部署到主流云平台，支持 Docker 容器化，自动配置 CI/CD 流水线，让您的应用快速稳定上线。',
-    icon: RocketOutlined,
-    color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  },
-  {
-    title: '高性能架构',
-    description: '采用最新技术栈和最佳实践，代码结构清晰，性能卓越，轻松应对高并发场景。',
-    icon: ThunderboltOutlined,
-    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-  },
-  {
-    title: '可视化编辑',
-    description: '拖拽式界面设计，实时预览效果，无需编写代码即可完成页面搭建和交互设计。',
-    icon: CodeOutlined,
-    color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-  },
-  {
-    title: '云端同步',
-    description: '项目自动保存到云端，支持多设备协作，随时随地继续您的工作。',
-    icon: CloudSyncOutlined,
-    color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-  },
-  {
-    title: '安全可靠',
-    description: '企业级安全防护，数据加密存储，权限精细管控，让您的项目安全无忧。',
-    icon: SafetyOutlined,
-    color: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
-  },
-]
-
-// 使用流程
-const steps = [
-  {
-    title: '描述需求',
-    description: '用自然语言描述您想要的应用功能',
-    number: '01',
-  },
-  {
-    title: 'AI 生成',
-    description: 'AI 智能分析并生成完整代码',
-    number: '02',
-  },
-  {
-    title: '预览调整',
-    description: '实时预览效果，随时调整优化',
-    number: '03',
-  },
-  {
-    title: '部署发布',
-    description: '一键部署到生产环境',
-    number: '04',
-  },
-]
-
-// 开始使用
-const handleGetStarted = () => {
-  if (isLoggedIn.value) {
-    router.push('/features')
-  } else {
-    router.push('/user/register')
+    if (res.data.code === 0 && res.data.data) {
+      message.success('应用创建成功')
+      // 跳转到对话页面，确保ID是字符串类型
+      const appId = String(res.data.data)
+      await router.push(`/app/chat/${appId}`)
+    } else {
+      message.error('创建失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('创建应用失败：', error)
+    message.error('创建失败，请重试')
+  } finally {
+    creating.value = false
   }
 }
+
+// 加载我的应用
+const loadMyApps = async () => {
+  if (!loginUserStore.loginUser.id) {
+    return
+  }
+
+  try {
+    const res = await listMyAppVoByPage({
+      pageNum: myAppsPage.current,
+      pageSize: myAppsPage.pageSize,
+      sortField: 'createTime',
+      sortOrder: 'desc',
+    })
+
+    if (res.data.code === 0 && res.data.data) {
+      myApps.value = res.data.data.records || []
+      myAppsPage.total = res.data.data.totalRow || 0
+    }
+  } catch (error) {
+    console.error('加载我的应用失败：', error)
+  }
+}
+
+// 加载精选应用
+const loadFeaturedApps = async () => {
+  try {
+    const res = await listGoodAppVoByPage({
+      pageNum: featuredAppsPage.current,
+      pageSize: featuredAppsPage.pageSize,
+      sortField: 'createTime',
+      sortOrder: 'desc',
+    })
+
+    if (res.data.code === 0 && res.data.data) {
+      featuredApps.value = res.data.data.records || []
+      featuredAppsPage.total = res.data.data.totalRow || 0
+    }
+  } catch (error) {
+    console.error('加载精选应用失败：', error)
+  }
+}
+
+// 查看对话
+const viewChat = (appId: string | number | undefined) => {
+  if (appId) {
+    router.push(`/app/chat/${appId}?view=1`)
+  }
+}
+
+// 查看作品
+const viewWork = (app: API.AppVO) => {
+  if (app.deployKey) {
+    const url = getDeployUrl(app.deployKey)
+    window.open(url, '_blank')
+  }
+}
+
+// 格式化时间函数已移除，不再需要显示创建时间
+
+// 页面加载时获取数据
+onMounted(() => {
+  loadMyApps()
+  loadFeaturedApps()
+
+  // 鼠标跟随光效
+  const handleMouseMove = (e: MouseEvent) => {
+    const { clientX, clientY } = e
+    const { innerWidth, innerHeight } = window
+    const x = (clientX / innerWidth) * 100
+    const y = (clientY / innerHeight) * 100
+
+    document.documentElement.style.setProperty('--mouse-x', `${x}%`)
+    document.documentElement.style.setProperty('--mouse-y', `${y}%`)
+  }
+
+  document.addEventListener('mousemove', handleMouseMove)
+
+  // 清理事件监听器
+  return () => {
+    document.removeEventListener('mousemove', handleMouseMove)
+  }
+})
 </script>
 
 <template>
-  <div class="home-page">
-    <!-- Hero 区域 -->
-    <section class="hero-section">
-      <div class="hero-content">
-        <div class="hero-text">
-          <h1 class="hero-title">
-            <span class="gradient-text">不写一行代码</span>
-            <br />
-            生成完整应用
-          </h1>
-          <p class="hero-description">
-            Lij AI 应用生成平台，基于先进的人工智能技术，
-            <br class="hidden-mobile" />
-            让您无需编写代码，即可快速构建专业级应用
-          </p>
-          <div class="hero-actions">
-            <a-button type="primary" size="large" class="btn-get-started" @click="handleGetStarted">
-              {{ isLoggedIn ? '开始使用' : '免费注册' }}
-              <ArrowRightOutlined style="margin-left: 8px" />
-            </a-button>
-            <a-button size="large" type="primary" class="btn-learn-more" href="#features">
-              了解更多
-            </a-button>
-          </div>
-          <div v-if="isLoggedIn" class="user-welcome">
-            <a-space>
-              <a-avatar :src="userAvatar" :size="40" />
-              <div class="welcome-info">
-                <p class="welcome-text">欢迎回来</p>
-                <p class="user-name">{{ userDisplayName }}</p>
-              </div>
-            </a-space>
-          </div>
-        </div>
-        <div class="hero-image">
-          <div class="code-block">
-            <div class="code-header">
-              <span class="dot red"></span>
-              <span class="dot yellow"></span>
-              <span class="dot green"></span>
-            </div>
-            <pre class="code-content">
-&lt;App&gt;
-  &lt;Header /&gt;
-  &lt;Main&gt;
-    &lt;Feature name="AI 生成" /&gt;
-    &lt;Feature name="快速部署" /&gt;
-  &lt;/Main&gt;
-  &lt;Footer /&gt;
-&lt;/App&gt;</pre
-            >
-          </div>
-        </div>
+  <div id="homePage">
+    <div class="container">
+      <!-- 网站标题和描述 -->
+      <div class="hero-section">
+        <h1 class="hero-title">AI 应用生成平台</h1>
+        <p class="hero-description">一句话轻松创建网站应用</p>
       </div>
-      <!-- 波浪分隔 -->
-      <div class="hero-wave">
-        <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
-          <path d="M0,64 C480,160 960,-32 1440,64 L1440,120 L0,120 Z" fill="#fff"></path>
-        </svg>
-      </div>
-    </section>
 
-    <!-- 核心功能区域 -->
-    <section id="features" class="features-section">
-      <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">核心功能</h2>
-          <p class="section-subtitle">强大的功能集合，助您快速实现创意</p>
-        </div>
-        <a-row :gutter="[24, 24]">
-          <a-col v-for="(feature, index) in coreFeatures" :key="index" :xs="24" :sm="12" :lg="8">
-            <a-card class="feature-card" hoverable>
-              <template #cover>
-                <div class="feature-icon-wrapper" :style="{ background: feature.color }">
-                  <component :is="feature.icon" class="feature-icon" />
-                </div>
-              </template>
-              <a-card-meta>
-                <template #title>
-                  <span class="feature-title">{{ feature.title }}</span>
-                </template>
-                <template #description>
-                  <p class="feature-description">{{ feature.description }}</p>
-                </template>
-              </a-card-meta>
-            </a-card>
-          </a-col>
-        </a-row>
-      </div>
-    </section>
-
-    <!-- 使用流程区域 -->
-    <section class="workflow-section">
-      <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">如何使用</h2>
-          <p class="section-subtitle">简单的四步，开启您的 AI 创作之旅</p>
-        </div>
-        <a-row :gutter="[16, 16]" class="workflow-steps">
-          <a-col v-for="(step, index) in steps" :key="index" :xs="24" :sm="12" :md="6">
-            <div class="step-item">
-              <div class="step-number">{{ step.number }}</div>
-              <h3 class="step-title">{{ step.title }}</h3>
-              <p class="step-description">{{ step.description }}</p>
-            </div>
-          </a-col>
-        </a-row>
-      </div>
-    </section>
-
-    <!-- CTA 行动号召区域 -->
-    <section class="cta-section">
-      <div class="container">
-        <div class="cta-content">
-          <h2 class="cta-title">准备好开始了吗？</h2>
-          <p class="cta-description">立即体验 AI 驱动的应用开发新方式</p>
-          <a-button type="primary" size="large" class="btn-cta" @click="handleGetStarted">
-            {{ isLoggedIn ? '创建我的第一个应用' : '立即免费注册' }}
+      <!-- 用户提示词输入框 -->
+      <div class="input-section">
+        <a-textarea
+          v-model:value="userPrompt"
+          placeholder="帮我创建个人博客网站"
+          :rows="4"
+          :maxlength="1000"
+          class="prompt-input"
+        />
+        <div class="input-actions">
+          <a-button type="primary" size="large" @click="createApp" :loading="creating">
+            <template #icon>
+              <span>↑</span>
+            </template>
           </a-button>
         </div>
       </div>
-    </section>
+
+      <!-- 快捷按钮 -->
+      <div class="quick-actions">
+        <a-button
+          type="default"
+          @click="
+            setPrompt(
+              '创建一个现代化的个人博客网站，包含文章列表、详情页、分类标签、搜索功能、评论系统和个人简介页面。采用简洁的设计风格，支持响应式布局，文章支持Markdown格式，首页展示最新文章和热门推荐。',
+            )
+          "
+          >个人博客网站</a-button
+        >
+        <a-button
+          type="default"
+          @click="
+            setPrompt(
+              '设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。',
+            )
+          "
+          >企业官网</a-button
+        >
+        <a-button
+          type="default"
+          @click="
+            setPrompt(
+              '构建一个功能完整的在线商城，包含商品展示、购物车、用户注册登录、订单管理、支付结算等功能。设计现代化的商品卡片布局，支持商品搜索筛选、用户评价、优惠券系统和会员积分功能。',
+            )
+          "
+          >在线商城</a-button
+        >
+        <a-button
+          type="default"
+          @click="
+            setPrompt(
+              '制作一个精美的作品展示网站，适合设计师、摄影师、艺术家等创作者。包含作品画廊、项目详情页、个人简历、联系方式等模块。采用瀑布流或网格布局展示作品，支持图片放大预览和作品分类筛选。',
+            )
+          "
+          >作品展示网站</a-button
+        >
+      </div>
+
+      <!-- 我的作品 -->
+      <div class="section">
+        <h2 class="section-title">我的作品</h2>
+        <div class="app-grid">
+          <AppCard
+            v-for="app in myApps"
+            :key="app.id"
+            :app="app"
+            @view-chat="viewChat"
+            @view-work="viewWork"
+          />
+        </div>
+        <div class="pagination-wrapper">
+          <a-pagination
+            v-model:current="myAppsPage.current"
+            v-model:page-size="myAppsPage.pageSize"
+            :total="myAppsPage.total"
+            :show-size-changer="false"
+            :show-total="(total: number) => `共 ${total} 个应用`"
+            @change="loadMyApps"
+          />
+        </div>
+      </div>
+
+      <!-- 精选案例 -->
+      <div class="section">
+        <h2 class="section-title">精选案例</h2>
+        <div class="featured-grid">
+          <AppCard
+            v-for="app in featuredApps"
+            :key="app.id"
+            :app="app"
+            :featured="true"
+            @view-chat="viewChat"
+            @view-work="viewWork"
+          />
+        </div>
+        <div class="pagination-wrapper">
+          <a-pagination
+            v-model:current="featuredAppsPage.current"
+            v-model:page-size="featuredAppsPage.pageSize"
+            :total="featuredAppsPage.total"
+            :show-size-changer="false"
+            :show-total="(total: number) => `共 ${total} 个案例`"
+            @change="loadFeaturedApps"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.home-page {
+#homePage {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 8%, #e2e8f0 20%, #cbd5e1 100%),
+    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+  position: relative;
   overflow: hidden;
 }
 
-/* Hero 区域 */
-.hero-section {
-  position: relative;
-  min-height: 90vh;
-  background: linear-gradient(135deg, #1a1c2e 0%, #2d1b4e 50%, #1a1c2e 100%);
-  display: flex;
-  flex-direction: column;
+/* 科技感网格背景 */
+#homePage::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.04) 1px, transparent 1px);
+  background-size:
+    100px 100px,
+    100px 100px,
+    20px 20px,
+    20px 20px;
+  pointer-events: none;
+  animation: gridFloat 20s ease-in-out infinite;
 }
 
-.hero-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  max-width: 1400px;
+/* 动态光效 */
+#homePage::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(
+      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(59, 130, 246, 0.08) 0%,
+      rgba(139, 92, 246, 0.06) 40%,
+      transparent 80%
+    ),
+    linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.04) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 30%, rgba(139, 92, 246, 0.04) 50%, transparent 70%);
+  pointer-events: none;
+  animation: lightPulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes gridFloat {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(5px, 5px);
+  }
+}
+
+@keyframes lightPulse {
+  0% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0.7;
+  }
+}
+
+.container {
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 80px 24px 60px;
-  gap: 60px;
+  padding: 20px;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.hero-text {
-  flex: 1;
-  max-width: 600px;
+/* 移除居中光束效果 */
+
+/* 英雄区域 */
+.hero-section {
+  text-align: center;
+  padding: 80px 0 60px;
+  margin-bottom: 28px;
+  color: #1e293b;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse 800px 400px at center, rgba(59, 130, 246, 0.12) 0%, transparent 70%),
+    linear-gradient(45deg, transparent 30%, rgba(139, 92, 246, 0.05) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 30%, rgba(16, 185, 129, 0.04) 50%, transparent 70%);
+  animation: heroGlow 10s ease-in-out infinite alternate;
+}
+
+@keyframes heroGlow {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes rotate {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 .hero-title {
   font-size: 56px;
-  font-weight: 800;
-  line-height: 1.1;
-  margin-bottom: 24px;
-  color: #fff;
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-weight: 700;
+  margin: 0 0 20px;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #10b981 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: -1px;
+  position: relative;
+  z-index: 2;
+  animation: titleShimmer 3s ease-in-out infinite;
+}
+
+@keyframes titleShimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .hero-description {
-  font-size: 18px;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 32px;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 40px;
-}
-
-.btn-get-started {
-  height: 48px;
-  padding: 0 32px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-}
-
-.btn-get-started:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-}
-
-.btn-learn-more {
-  height: 48px;
-  padding: 0 32px;
-  font-size: 16px;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
-  background: transparent;
-}
-
-.btn-learn-more:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #fff;
-}
-
-.user-welcome {
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-}
-
-.welcome-info {
-  text-align: left;
-}
-
-.welcome-text {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 20px;
   margin: 0;
+  opacity: 0.8;
+  color: #64748b;
+  position: relative;
+  z-index: 2;
 }
 
-.user-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
-  margin: 0;
+/* 输入区域 */
+.input-section {
+  position: relative;
+  margin: 0 auto 24px;
+  max-width: 800px;
 }
 
-.hero-image {
-  flex: 1;
-  max-width: 500px;
-  display: flex;
-  justify-content: center;
-}
-
-.code-block {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.prompt-input {
   border-radius: 16px;
-  padding: 24px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+  border: none;
+  font-size: 16px;
+  padding: 20px 60px 20px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
-.code-header {
+.prompt-input:focus {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.input-actions {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  align-items: center;
 }
 
-.code-header .dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+/* 快捷按钮 */
+.quick-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 60px;
+  flex-wrap: wrap;
 }
 
-.code-header .dot.red {
-  background: #ff5f56;
+.quick-actions .ant-btn {
+  border-radius: 25px;
+  padding: 8px 20px;
+  height: auto;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #475569;
+  backdrop-filter: blur(15px);
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
 }
 
-.code-header .dot.yellow {
-  background: #ffbd2e;
-}
-
-.code-header .dot.green {
-  background: #27ca40;
-}
-
-.code-content {
-  color: #a8b5d2;
-  font-family: 'Fira Code', 'Consolas', monospace;
-  font-size: 14px;
-  line-height: 1.8;
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-.hero-wave {
+.quick-actions .ant-btn::before {
+  content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-}
-
-.hero-wave svg {
+  top: 0;
+  left: -100%;
   width: 100%;
   height: 100%;
-  display: block;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  transition: left 0.5s;
 }
 
-/* 功能区域 */
-.features-section {
-  padding: 100px 24px;
-  background: #fff;
+.quick-actions .ant-btn:hover::before {
+  left: 100%;
 }
 
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
+.quick-actions .ant-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
 }
 
-.section-header {
-  text-align: center;
+/* 区域标题 */
+.section {
   margin-bottom: 60px;
 }
 
 .section-title {
-  font-size: 36px;
-  font-weight: 700;
-  color: #1a1c2e;
-  margin-bottom: 16px;
-}
-
-.section-subtitle {
-  font-size: 16px;
-  color: #666;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.feature-card {
-  height: 100%;
-  border-radius: 16px;
-  overflow: hidden;
-  transition: all 0.3s;
-}
-
-.feature-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
-}
-
-.feature-icon-wrapper {
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.feature-icon {
-  font-size: 64px;
-  color: #fff;
-}
-
-.feature-title {
-  font-size: 18px;
+  font-size: 32px;
   font-weight: 600;
-  color: #1a1c2e;
+  margin-bottom: 32px;
+  color: #1e293b;
 }
 
-.feature-description {
-  font-size: 14px;
-  line-height: 1.8;
-  color: #666;
-  margin: 0;
-}
-
-/* 工作流程区域 */
-.workflow-section {
-  padding: 100px 24px;
-  background: linear-gradient(180deg, #f8f9fa 0%, #fff 100%);
-}
-
-.workflow-steps {
-  margin-top: 40px;
-}
-
-.step-item {
-  text-align: center;
-  padding: 40px 24px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s;
-}
-
-.step-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-}
-
-.step-number {
-  display: inline-block;
-  width: 56px;
-  height: 56px;
-  line-height: 56px;
-  font-size: 24px;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
-  margin-bottom: 20px;
-}
-
-.step-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1c2e;
-  margin-bottom: 12px;
-}
-
-.step-description {
-  font-size: 14px;
-  color: #666;
-  margin: 0;
-}
-
-/* CTA 区域 */
-.cta-section {
-  padding: 100px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.cta-content {
-  text-align: center;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.cta-title {
-  font-size: 36px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 16px;
-}
-
-.cta-description {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.9);
+/* 我的作品网格 */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
   margin-bottom: 32px;
 }
 
-.btn-cta {
-  height: 56px;
-  padding: 0 48px;
-  font-size: 18px;
-  font-weight: 600;
-  border-radius: 28px;
-  background: #fff;
-  color: #667eea;
-  border: none;
+/* 精选案例网格 */
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
-.btn-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+/* 分页 */
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
 }
 
-/* 响应式 */
-@media (max-width: 992px) {
-  .hero-content {
-    flex-direction: column;
-    text-align: center;
-    padding-top: 40px;
-  }
-
-  .hero-text {
-    max-width: 100%;
-  }
-
+/* 响应式设计 */
+@media (max-width: 768px) {
   .hero-title {
-    font-size: 40px;
+    font-size: 32px;
   }
 
   .hero-description {
     font-size: 16px;
   }
 
-  .hero-actions {
+  .app-grid,
+  .featured-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
     justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .hero-image {
-    width: 100%;
-    max-width: 400px;
-  }
-
-  .user-welcome {
-    display: inline-block;
-  }
-}
-
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 32px;
-  }
-
-  .section-title {
-    font-size: 28px;
-  }
-
-  .cta-title {
-    font-size: 28px;
-  }
-
-  .hidden-mobile {
-    display: none;
-  }
-
-  .hero-actions {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .btn-get-started,
-  .btn-learn-more,
-  .btn-cta {
-    //width: 100%;
-    //max-width: 280px;
-    height: 48px;
-    padding: 0 32px;
-    font-size: 16px;
-    font-weight: 600;
-    border-radius: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
   }
 }
 </style>
