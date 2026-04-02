@@ -16,7 +16,8 @@ import java.nio.charset.StandardCharsets;
  * @param <T>
  */
 public abstract class CodeFileSaverTemplate<T> {
-    private static final String File_Save_Root_Dir = System.getProperty("user.dir") + AppConstant.CODE_OUTPUT_ROOT_DIR;
+//    private static final String File_Save_Root_Dir = System.getProperty("user.dir") + AppConstant.CODE_OUTPUT_ROOT_DIR;
+    private static final String File_Save_Root_Dir = AppConstant.CODE_OUTPUT_ROOT_DIR;
 
 
     /**
