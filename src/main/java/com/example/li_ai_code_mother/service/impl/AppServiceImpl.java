@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.example.li_ai_code_mother.core.AiCodeGeneratorFacade;
+import com.example.li_ai_code_mother.core.handler.StreamHandlerExecutor;
 import com.example.li_ai_code_mother.exception.ThrowUtils;
 import com.example.li_ai_code_mother.model.entity.User;
 import com.example.li_ai_code_mother.model.enums.ChatHistoryMessageTypeEnum;
@@ -60,6 +61,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private ChatHistoryService chatHistoryService;
     @Autowired
     private View error;
+    @Autowired
+    private StreamHandlerExecutor streamHandlerExecutor;
 
 
     @Override
@@ -144,25 +147,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         }
-        // 5. 调用ai前，先保存用户消息到数据库到中去
-        chatHistoryService.addChatMessage(appId,message, ChatHistoryMessageTypeEnum.USER.getValue(),loginUser.getId());
-        // 6. 调用 AI 生成代码(流式)
-        Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveCodestream(message, codeGenTypeEnum, appId);
-        // 7. 收集AI响应内容，完成后保存记录到对话记录数据库当中
-        StringBuilder aiResponseBuilder = new StringBuilder();
-        return contentFlux.map(chunk -> {
-            // 实时收集AI响应内容
-            aiResponseBuilder.append(chunk);
-            return chunk;
-        }).doOnComplete(() -> {
-            //流式返回结束后，保存AI消息到对话历史中
-            String aiResponse = aiResponseBuilder.toString();
-            chatHistoryService.addChatMessage(appId,aiResponse,ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-        }).doOnError(error -> {
-            //如果ai保存失败，也需要保存对话历史
-            String errormessage = "AI回复失败" + error.getMessage();
-            chatHistoryService.addChatMessage(appId, errormessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-        });
+        // 5. 通过校验后，添加用户消息到对话历史
+        chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+        // 6. 调用 AI 生成代码（流式）
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodestream(message, codeGenTypeEnum, appId);
+        // 7. 收集 AI 响应内容并在完成后记录到对话历史(根据对应的流 )
+        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum);
+
     }
 
     @Override
