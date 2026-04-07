@@ -14,13 +14,13 @@
 //
 //    @Test
 //    void generateHtmlCode() {
-//        String result = aiCodeGeneratorService.generateHtmlCode("做个程序员鱼皮的工作记录小工具");
+//        String result = aiCodeGeneratorService.generateHtmlCode("做个程序员li的工作记录小工具");
 //        Assertions.assertNotNull(result);
 //    }
 //
 //    @Test
 //    void generateMultiFileCode() {
-//        String multiFileCode = aiCodeGeneratorService.generateMultiFileCode("做个程序员鱼皮的留言板");
+//        String multiFileCode = aiCodeGeneratorService.generateMultiFileCode("做个程序员li的留言板");
 //        Assertions.assertNotNull(multiFileCode);
 //    }
 //}

@@ -23,6 +23,15 @@ import java.util.List;
  */
 public interface AppService extends IService<App> {
 
+
+    /**
+     * 创建应用
+     * @param appAddRequest
+     * @param loginUser
+     * @return
+     */
+    Long createApp(AppAddRequest appAddRequest, User loginUser);
+
     /**
      * 获取用户封装类
      * @param app

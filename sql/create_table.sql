@@ -1,6 +1,6 @@
 # 数据库初始化
 # @author <a href="https://github.com/lijunznib">李J</a>
--- # @from <a href="https://codefather.cn">编程导航学习圈</a>
+-- # @from <a href="https://github.com/lijunznib">代码仓库</a>
 
 -- 创建库
 create database if not exists li_ai_code_mother;

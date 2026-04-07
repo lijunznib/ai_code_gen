@@ -39,24 +39,6 @@ knife4j:
   setting:
     language: zh_cn
 
-langchain4j:
-  open-ai:
-    chat-model:
-      base-url: https://coding.dashscope.aliyuncs.com/v1
-      api-key: sk-sp-3c8e6f0adf6f4261bf8879bfac0ec88a
-      model-name: kimi-k2.5
-      max-tokens: 50000
-      response_format: json_object
-      strict-json-schema: true
-      log-requests: true
-      log-responses: true
-    streaming-chat-model:
-      base-url: https://coding.dashscope.aliyuncs.com/v1
-      api-key: sk-sp-3c8e6f0adf6f4261bf8879bfac0ec88a
-      model-name: kimi-k2.5
-      max-tokens: 50000
-      log-requests: true
-      log-responses: true
 
 
 
