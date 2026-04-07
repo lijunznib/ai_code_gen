@@ -64,6 +64,8 @@ public interface AppService extends IService<App> {
      */
     String deployApp(Long appID , User loginUser);
 
+    void generateAppScreenshotAsync(Long appId, String appUrl);
+
     long userAddApp(AppAddRequest request, Long userId);
 
     boolean userUpdateAppName(AppUpdateRequest request, Long userId);
