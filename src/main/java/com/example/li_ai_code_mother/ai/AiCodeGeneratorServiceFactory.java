@@ -1,7 +1,7 @@
 package com.example.li_ai_code_mother.ai;
 
 
-import com.example.li_ai_code_mother.ai.tools.FileWriteTool;
+import com.example.li_ai_code_mother.ai.tools.*;
 import com.example.li_ai_code_mother.exception.BusinessException;
 import com.example.li_ai_code_mother.exception.ErrorCode;
 import com.example.li_ai_code_mother.model.enums.CodeGenTypeEnum;
@@ -17,6 +17,7 @@ import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -47,6 +48,8 @@ public class AiCodeGeneratorServiceFactory {
     @Resource
     private ChatHistoryService chatHistoryService;
 
+    @Resource ToolManager toolManager;
+
     /**
      * AI 服务实例缓存
      */
@@ -58,6 +61,7 @@ public class AiCodeGeneratorServiceFactory {
                 log.debug("AI 服务实例被移除，缓存键: {}, 原因: {}", key, cause);
             })
             .build();
+
 
     /**
      * 根据 appId 获取服务（带缓存）这个方法是为了兼容历史逻辑
@@ -101,7 +105,8 @@ public class AiCodeGeneratorServiceFactory {
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(new FileWriteTool())
+                    .tools(toolManager.getAllTools()
+                    )
                     //处理工具调用幻觉问题
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()

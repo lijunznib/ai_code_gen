@@ -3588,3 +3588,4 @@ build/
 /node_modules/yargs-parser/README.md
 /node_modules/.package-lock.json
 /test/test.http
+/src/test/java/com/example/li_ai_code_mother/utils/WebScreenshotUtilsTest.java

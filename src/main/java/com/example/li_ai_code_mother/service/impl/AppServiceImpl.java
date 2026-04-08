@@ -2,6 +2,7 @@ package com.example.li_ai_code_mother.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.example.li_ai_code_mother.ai.AiCodeGenTypeRoutingService;
 import com.example.li_ai_code_mother.core.AiCodeGeneratorFacade;
@@ -233,7 +234,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         }
         // 8. 复制文件到部署目录
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
-
+        try {
+            FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用部署失败：" + e.getMessage());
+        }
         // 9. 更新应用的 deployKey 和部署时间
         App updateApp = new App();
         updateApp.setId(appId);
