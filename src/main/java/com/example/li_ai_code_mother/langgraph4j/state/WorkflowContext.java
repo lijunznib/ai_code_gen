@@ -1,6 +1,7 @@
 package com.example.li_ai_code_mother.langgraph4j.state;
 
 import com.example.li_ai_code_mother.langgraph4j.model.ImageResource;
+import com.example.li_ai_code_mother.langgraph4j.model.QualityResult;
 import com.example.li_ai_code_mother.model.enums.CodeGenTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -72,6 +73,11 @@ public class WorkflowContext implements Serializable {
      * 错误信息
      */
     private String errorMessage;
+    /**
+     * 质量检查结果
+     */
+    private QualityResult qualityResult;
+
 
     @Serial
     private static final long serialVersionUID = 1L;
