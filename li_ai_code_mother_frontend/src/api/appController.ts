@@ -1,14 +1,10 @@
-
+// @ts-ignore
 /* eslint-disable */
 import request from '@/request'
 
-/**
- * 用户 - 应用相关接口
- */
-
-/** POST /app/user/add - 创建应用，返回应用 id */
+/** 此处后端没有提供注释 POST /app/add */
 export async function addApp(body: API.AppAddRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponseLong>('/app/user/add', {
+  return request<API.BaseResponseLong>('/app/add', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -18,9 +14,9 @@ export async function addApp(body: API.AppAddRequest, options?: { [key: string]:
   })
 }
 
-/** POST /app/user/update - 更新自己的应用名称 */
-export async function updateAppName(body: API.AppUpdateRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponseBoolean>('/app/user/update', {
+/** 此处后端没有提供注释 POST /app/admin/delete */
+export async function deleteAppByAdmin(body: API.DeleteRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/app/admin/delete', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -30,24 +26,13 @@ export async function updateAppName(body: API.AppUpdateRequest, options?: { [key
   })
 }
 
-/** POST /app/user/delete - 删除自己的应用 */
-export async function deleteMyApp(body: API.DeleteRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponseBoolean>('/app/user/delete', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    data: body,
-    ...(options || {}),
-  })
-}
-
-/** GET /app/user/get?id=... - 查询自己的应用详情（实体） */
-export async function getMyAppById(
-  params: API.getAppByIdParams,
+/** 此处后端没有提供注释 GET /app/admin/get/vo */
+export async function getAppVoByIdByAdmin(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAppVOByIdByAdminParams,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseApp>('/app/user/get', {
+  return request<API.BaseResponseAppVO>('/app/admin/get/vo', {
     method: 'GET',
     params: {
       ...params,
@@ -56,9 +41,12 @@ export async function getMyAppById(
   })
 }
 
-/** POST /app/user/list/page - 分页查询自己的应用列表（实体） */
-export async function listMyAppsByPage(body: API.AppQueryRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponsePageApp>('/app/user/list/page', {
+/** 此处后端没有提供注释 POST /app/admin/list/page/vo */
+export async function listAppVoByPageByAdmin(
+  body: API.AppQueryRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePageAppVO>('/app/admin/list/page/vo', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -68,9 +56,12 @@ export async function listMyAppsByPage(body: API.AppQueryRequest, options?: { [k
   })
 }
 
-/** POST /app/user/list/page/good - 分页查询精选应用列表（实体） */
-export async function listGoodAppsByPage(body: API.AppQueryRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponsePageApp>('/app/user/list/page/good', {
+/** 此处后端没有提供注释 POST /app/admin/update */
+export async function updateAppByAdmin(
+  body: API.AppAdminUpdateRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean>('/app/admin/update', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -80,12 +71,62 @@ export async function listGoodAppsByPage(body: API.AppQueryRequest, options?: { 
   })
 }
 
-/**
- * 通用 - VO 详情（包含用户信息）
- */
+/** 此处后端没有提供注释 GET /app/chat/gen/code */
+export async function chatToGenCode(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.chatToGenCodeParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.ServerSentEventString[]>('/app/chat/gen/code', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
 
-/** GET /app/get/vo?id=... - 根据 id 获取应用详情（VO） */
-export async function getAppVOById(
+/** 此处后端没有提供注释 POST /app/delete */
+export async function deleteApp(body: API.DeleteRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/app/delete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 POST /app/deploy */
+export async function deployApp(body: API.AppDeployRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseString>('/app/deploy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 GET /app/download/${param0} */
+export async function downloadAppCode(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.downloadAppCodeParams,
+  options?: { [key: string]: any }
+) {
+  const { appId: param0, ...queryParams } = params
+  return request<any>(`/app/download/${param0}`, {
+    method: 'GET',
+    params: { ...queryParams },
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 GET /app/get/vo */
+export async function getAppVoById(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getAppVOByIdParams,
   options?: { [key: string]: any }
 ) {
@@ -98,75 +139,44 @@ export async function getAppVOById(
   })
 }
 
-/**
- * 管理员 - 应用相关接口
- */
-
-/** POST /app/admin/delete - 管理员删除应用 */
-export async function deleteAppByAdmin(body: API.DeleteRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponseBoolean>('/app/admin/delete', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    data: body,
-    ...(options || {}),
-  })
-}
-
-/** POST /app/admin/update - 管理员更新应用（支持 appName/cover/priority） */
-export async function updateAppByAdmin(body: API.AppAdminUpdateRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponseBoolean>('/app/admin/update', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    data: body,
-    ...(options || {}),
-  })
-}
-
-/** POST /app/admin/list/page - 管理员分页查询应用列表（实体，支持 isDelete） */
-export async function listAppsByPageByAdmin(body: API.AppAdminQueryRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponsePageApp>('/app/admin/list/page', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    data: body,
-    ...(options || {}),
-  })
-}
-
-/** GET /app/admin/get?id=... - 管理员根据 id 查看应用详情（实体） */
-export async function getAppByIdByAdmin(
-  params: API.getAppByIdParams,
+/** 此处后端没有提供注释 POST /app/good/list/page/vo */
+export async function listGoodAppVoByPage(
+  body: API.AppQueryRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseApp>('/app/admin/get', {
-    method: 'GET',
-    params: {
-      ...params,
+  return request<API.BaseResponsePageAppVO>('/app/good/list/page/vo', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
+    data: body,
     ...(options || {}),
   })
 }
 
-/**
- * 管理员 - VO 详情（包含用户信息）
- */
-
-/** GET /app/admin/get/vo?id=... - 管理员根据 id 获取应用详情（VO） */
-export async function getAppVOByIdByAdmin(
-  params: API.getAppVOByIdParams,
+/** 此处后端没有提供注释 POST /app/my/list/page/vo */
+export async function listMyAppVoByPage(
+  body: API.AppQueryRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseAppVO>('/app/admin/get/vo', {
-    method: 'GET',
-    params: {
-      ...params,
+  return request<API.BaseResponsePageAppVO>('/app/my/list/page/vo', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
+    data: body,
     ...(options || {}),
   })
 }
 
+/** 此处后端没有提供注释 POST /app/update */
+export async function updateApp(body: API.AppUpdateRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/app/update', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}

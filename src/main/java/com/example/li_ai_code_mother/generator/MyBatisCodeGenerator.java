@@ -8,13 +8,14 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import java.util.Map;
 
+
 /**
  * MyBatis Flex 代码生成器
  */
 public class MyBatisCodeGenerator {
 
     // 要生成的表名
-    private static final String[] TABLE_NAMES = {"app"};
+    private static final String[] TABLE_NAMES = {"chat_history"};
 
     public static void main(String[] args) {
         // 获取数据元信息

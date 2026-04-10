@@ -1,447 +1,576 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { message, Modal } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { addApp, deleteMyApp, listGoodAppsByPage, listMyAppsByPage } from '@/api/appController'
+import { addApp, listMyAppVoByPage, listGoodAppVoByPage } from '@/api/appController'
+import { getDeployUrl } from '@/config/env'
+import AppCard from '@/components/AppCard.vue'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
-const isLoggedIn = computed(() => !!loginUserStore.loginUser?.id)
-
-const initPrompt = ref('')
+// 用户提示词
+const userPrompt = ref('')
 const creating = ref(false)
 
-const myApps = ref<API.App[]>([])
-const goodApps = ref<API.App[]>([])
-
-const myTotal = ref(0)
-const goodTotal = ref(0)
-
-const myAppName = ref('')
-const myPagination = reactive({
+// 我的应用数据
+const myApps = ref<API.AppVO[]>([])
+const myAppsPage = reactive({
   current: 1,
-  pageSize: 12,
+  pageSize: 6,
+  total: 0,
 })
 
-const goodAppName = ref('')
-const goodPagination = reactive({
+// 精选应用数据
+const featuredApps = ref<API.AppVO[]>([])
+const featuredAppsPage = reactive({
   current: 1,
-  pageSize: 12,
+  pageSize: 6,
+  total: 0,
 })
 
-const loadMyApps = async () => {
-  try {
-    const res = await listMyAppsByPage({
-      pageNum: myPagination.current,
-      pageSize: myPagination.pageSize,
-      appName: myAppName.value || undefined,
-    })
-    if (res.data.code === 0 && res.data.data) {
-      myApps.value = res.data.data.records || []
-      myTotal.value = res.data.data.totalRow || 0
-    } else {
-      myApps.value = []
-      myTotal.value = 0
-      message.error(res.data.message || '获取我的应用失败')
-    }
-  } catch (e) {
-    console.error(e)
-    message.error('获取我的应用失败，请稍后重试')
-  }
+// 设置提示词
+const setPrompt = (prompt: string) => {
+  userPrompt.value = prompt
 }
 
-const handleMySearch = () => {
-  myPagination.current = 1
-  loadMyApps()
-}
+// 优化提示词功能已移除
 
-const loadGoodApps = async () => {
-  try {
-    const res = await listGoodAppsByPage({
-      pageNum: goodPagination.current,
-      pageSize: goodPagination.pageSize,
-      appName: goodAppName.value || undefined,
-    })
-    if (res.data.code === 0 && res.data.data) {
-      goodApps.value = res.data.data.records || []
-      goodTotal.value = res.data.data.totalRow || 0
-    } else {
-      goodApps.value = []
-      goodTotal.value = 0
-      message.error(res.data.message || '获取精选应用失败')
-    }
-  } catch (e) {
-    console.error(e)
-    message.error('获取精选应用失败，请稍后重试')
-  }
-}
-
-const handleGoodSearch = () => {
-  goodPagination.current = 1
-  loadGoodApps()
-}
-
-const handleCreate = async () => {
-  const prompt = initPrompt.value.trim()
-  if (!prompt) {
-    message.warning('请先输入你的应用需求描述')
+// 创建应用
+const createApp = async () => {
+  if (!userPrompt.value.trim()) {
+    message.warning('请输入应用描述')
     return
   }
-  if (creating.value) return
 
+  if (!loginUserStore.loginUser.id) {
+    message.warning('请先登录')
+    await router.push('/user/login')
+    return
+  }
+
+  creating.value = true
   try {
-    creating.value = true
     const res = await addApp({
-      initPrompt: prompt,
-      // appName/cover 由后端根据 initPrompt 自动补全
-      appName: undefined,
-      cover: undefined,
+      initPrompt: userPrompt.value.trim(),
     })
+
     if (res.data.code === 0 && res.data.data) {
+      message.success('应用创建成功')
+      // 跳转到对话页面，确保ID是字符串类型
       const appId = String(res.data.data)
-      router.push({
-        path: `/app/chat/${appId}`,
-        query: {
-          autoGenerate: '1',
-        },
-      })
+      await router.push(`/app/chat/${appId}`)
     } else {
-      message.error(res.data.message || '创建应用失败')
+      message.error('创建失败：' + res.data.message)
     }
-  } catch (e) {
-    console.error(e)
-    message.error('创建应用失败，请稍后重试')
+  } catch (error) {
+    console.error('创建应用失败：', error)
+    message.error('创建失败，请重试')
   } finally {
     creating.value = false
   }
 }
 
-const onMyPageChange = (page: number, pageSize?: number) => {
-  myPagination.current = page
-  if (pageSize) myPagination.pageSize = pageSize
-  loadMyApps()
+// 加载我的应用
+const loadMyApps = async () => {
+  if (!loginUserStore.loginUser.id) {
+    return
+  }
+
+  try {
+    const res = await listMyAppVoByPage({
+      pageNum: myAppsPage.current,
+      pageSize: myAppsPage.pageSize,
+      sortField: 'createTime',
+      sortOrder: 'desc',
+    })
+
+    if (res.data.code === 0 && res.data.data) {
+      myApps.value = res.data.data.records || []
+      myAppsPage.total = res.data.data.totalRow || 0
+    }
+  } catch (error) {
+    console.error('加载我的应用失败：', error)
+  }
 }
 
-const onGoodPageChange = (page: number, pageSize?: number) => {
-  goodPagination.current = page
-  if (pageSize) goodPagination.pageSize = pageSize
-  loadGoodApps()
+// 加载精选应用
+const loadFeaturedApps = async () => {
+  try {
+    const res = await listGoodAppVoByPage({
+      pageNum: featuredAppsPage.current,
+      pageSize: featuredAppsPage.pageSize,
+      sortField: 'createTime',
+      sortOrder: 'desc',
+    })
+
+    if (res.data.code === 0 && res.data.data) {
+      featuredApps.value = res.data.data.records || []
+      featuredAppsPage.total = res.data.data.totalRow || 0
+    }
+  } catch (error) {
+    console.error('加载精选应用失败：', error)
+  }
 }
 
-const openAppChat = (appId?: number) => {
-  if (!appId) return
-  router.push(`/app/chat/${appId}`)
+// 查看对话
+const viewChat = (appId: string | number | undefined) => {
+  if (appId) {
+    router.push(`/app/chat/${appId}?view=1`)
+  }
 }
 
-const openAppEdit = (appId?: number) => {
-  if (!appId) return
-  router.push(`/app/edit/${appId}`)
+// 查看作品
+const viewWork = (app: API.AppVO) => {
+  if (app.deployKey) {
+    const url = getDeployUrl(app.deployKey)
+    window.open(url, '_blank')
+  }
 }
 
-const handleMyDelete = (app: API.App) => {
-  if (!app.id) return
-  Modal.confirm({
-    title: '确认删除应用',
-    content: `确定要删除「${app.appName || app.id}」吗？`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
-    onOk: async () => {
-      try {
-        const res = await deleteMyApp({ id: app.id })
-        if (res.data.code === 0) {
-          message.success('删除成功')
-          loadMyApps()
-        } else {
-          message.error(res.data.message || '删除失败')
-        }
-      } catch (e) {
-        console.error(e)
-        message.error('删除失败，请稍后重试')
-      }
-    },
-  })
-}
+// 格式化时间函数已移除，不再需要显示创建时间
 
+// 页面加载时获取数据
 onMounted(() => {
-  // 登录由路由守卫/请求拦截器处理，这里只负责触发加载
-  if (isLoggedIn.value) {
-    loadMyApps()
-    loadGoodApps()
-  } else {
-    // 未登录时不拉取列表
+  loadMyApps()
+  loadFeaturedApps()
+
+  // 鼠标跟随光效
+  const handleMouseMove = (e: MouseEvent) => {
+    const { clientX, clientY } = e
+    const { innerWidth, innerHeight } = window
+    const x = (clientX / innerWidth) * 100
+    const y = (clientY / innerHeight) * 100
+
+    document.documentElement.style.setProperty('--mouse-x', `${x}%`)
+    document.documentElement.style.setProperty('--mouse-y', `${y}%`)
+  }
+
+  document.addEventListener('mousemove', handleMouseMove)
+
+  // 清理事件监听器
+  return () => {
+    document.removeEventListener('mousemove', handleMouseMove)
   }
 })
 </script>
 
 <template>
-  <main class="app-home">
-    <section class="hero">
-      <div class="hero-inner">
-        <div class="hero-title">
-          一句话生成
-          <span class="cat-icon">🐵</span>
-          应用
-        </div>
-        <div class="hero-subtitle">与 AI 对话，创建并预览你的网站应用</div>
-
-        <div class="prompt-card">
-          <a-textarea
-            v-model:value="initPrompt"
-            :rows="4"
-            :disabled="creating"
-            placeholder="使用 NoCode 创建一个高效的网站，帮我生成..."
-            class="prompt-input"
-          />
-
-          <div class="prompt-actions">
-            <a-button type="primary" :loading="creating" :disabled="!initPrompt.trim()" @click="handleCreate">
-              生成应用
-            </a-button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="list-section">
-      <div class="section-header">
-        <h2>我的应用</h2>
-        <div class="section-search">
-          <a-input
-            v-model:value="myAppName"
-            placeholder="按应用名称搜索"
-            allow-clear
-            style="width: 240px"
-          />
-          <a-button type="primary" style="margin-left: 8px" @click="handleMySearch">搜索</a-button>
-        </div>
+  <div id="homePage">
+    <div class="container">
+      <!-- 网站标题和描述 -->
+      <div class="hero-section">
+        <h1 class="hero-title">AI 应用生成平台</h1>
+        <p class="hero-description">一句话轻松创建网站应用</p>
       </div>
 
-      <a-empty v-if="myApps.length === 0" description="暂无应用" />
-      <a-row v-else :gutter="[16, 16]" class="cards-grid">
-        <a-col v-for="app in myApps" :key="app.id" :xs="24" :sm="12" :md="8" :lg="6">
-          <a-card class="app-card" hoverable>
-            <template #cover>
-              <div class="cover-wrapper">
-                <img v-if="app.cover" :src="app.cover" class="cover-img" alt="" />
-                <div v-else class="cover-placeholder" />
-              </div>
-            </template>
-            <a-card-meta :title="app.appName || '未命名'" :description="app.initPrompt ? app.initPrompt.slice(0, 40) + '...' : ''">
-              <template #avatar>
-                <div class="app-avatar">{{ (app.appName || 'A').slice(0, 1).toUpperCase() }}</div>
-              </template>
-            </a-card-meta>
-            <div class="card-footer">
-              <a-button type="link" @click="openAppEdit(app.id)">编辑</a-button>
-              <a-button type="link" danger style="margin-left: 8px" @click="handleMyDelete(app)">
-                删除
-              </a-button>
-              <a-button type="link" style="margin-left: 8px" @click="openAppChat(app.id)">进入对话</a-button>
-            </div>
-          </a-card>
-        </a-col>
-      </a-row>
-
-      <div v-if="myTotal > 0" class="pagination">
-        <a-pagination
-          :current="myPagination.current"
-          :page-size="myPagination.pageSize"
-          :total="myTotal"
-          show-size-changer
-          :page-size-options="['10', '12', '20']"
-          @change="onMyPageChange"
+      <!-- 用户提示词输入框 -->
+      <div class="input-section">
+        <a-textarea
+          v-model:value="userPrompt"
+          placeholder="帮我创建个人博客网站"
+          :rows="4"
+          :maxlength="1000"
+          class="prompt-input"
         />
-      </div>
-    </section>
-
-    <section class="list-section selected-section">
-      <div class="section-header">
-        <h2>精选应用</h2>
-        <div class="section-search">
-          <a-input
-            v-model:value="goodAppName"
-            placeholder="按应用名称搜索"
-            allow-clear
-            style="width: 240px"
-          />
-          <a-button type="primary" style="margin-left: 8px" @click="handleGoodSearch">搜索</a-button>
+        <div class="input-actions">
+          <a-button type="primary" size="large" @click="createApp" :loading="creating">
+            <template #icon>
+              <span>↑</span>
+            </template>
+          </a-button>
         </div>
       </div>
 
-      <a-empty v-if="goodApps.length === 0" description="暂无精选应用" />
-      <a-row v-else :gutter="[16, 16]" class="cards-grid">
-        <a-col v-for="app in goodApps" :key="app.id" :xs="24" :sm="12" :md="8" :lg="6">
-          <a-card class="app-card" hoverable>
-            <template #cover>
-              <div class="cover-wrapper">
-                <img v-if="app.cover" :src="app.cover" class="cover-img" alt="" />
-                <div v-else class="cover-placeholder" />
-              </div>
-            </template>
-            <a-card-meta :title="app.appName || '未命名'" :description="app.initPrompt ? app.initPrompt.slice(0, 40) + '...' : ''">
-              <template #avatar>
-                <div class="app-avatar">{{ (app.appName || 'A').slice(0, 1).toUpperCase() }}</div>
-              </template>
-            </a-card-meta>
-            <div class="card-footer">
-              <a-button type="link" @click="openAppChat(app.id)">查看预览</a-button>
-            </div>
-          </a-card>
-        </a-col>
-      </a-row>
-
-      <div v-if="goodTotal > 0" class="pagination">
-        <a-pagination
-          :current="goodPagination.current"
-          :page-size="goodPagination.pageSize"
-          :total="goodTotal"
-          show-size-changer
-          :page-size-options="['10', '12', '20']"
-          @change="onGoodPageChange"
-        />
+      <!-- 快捷按钮 -->
+      <div class="quick-actions">
+        <a-button
+          type="default"
+          @click="
+            setPrompt(
+              '创建一个现代化的个人博客网站，包含文章列表、详情页、分类标签、搜索功能、评论系统和个人简介页面。采用简洁的设计风格，支持响应式布局，文章支持Markdown格式，首页展示最新文章和热门推荐。',
+            )
+          "
+          >个人博客网站</a-button
+        >
+        <a-button
+          type="default"
+          @click="
+            setPrompt(
+              '设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。',
+            )
+          "
+          >企业官网</a-button
+        >
+        <a-button
+          type="default"
+          @click="
+            setPrompt(
+              '构建一个功能完整的在线商城，包含商品展示、购物车、用户注册登录、订单管理、支付结算等功能。设计现代化的商品卡片布局，支持商品搜索筛选、用户评价、优惠券系统和会员积分功能。',
+            )
+          "
+          >在线商城</a-button
+        >
+        <a-button
+          type="default"
+          @click="
+            setPrompt(
+              '制作一个精美的作品展示网站，适合设计师、摄影师、艺术家等创作者。包含作品画廊、项目详情页、个人简历、联系方式等模块。采用瀑布流或网格布局展示作品，支持图片放大预览和作品分类筛选。',
+            )
+          "
+          >作品展示网站</a-button
+        >
       </div>
-    </section>
-  </main>
+
+      <!-- 我的作品 -->
+      <div class="section">
+        <h2 class="section-title">我的作品</h2>
+        <div class="app-grid">
+          <AppCard
+            v-for="app in myApps"
+            :key="app.id"
+            :app="app"
+            @view-chat="viewChat"
+            @view-work="viewWork"
+          />
+        </div>
+        <div class="pagination-wrapper">
+          <a-pagination
+            v-model:current="myAppsPage.current"
+            v-model:page-size="myAppsPage.pageSize"
+            :total="myAppsPage.total"
+            :show-size-changer="false"
+            :show-total="(total: number) => `共 ${total} 个应用`"
+            @change="loadMyApps"
+          />
+        </div>
+      </div>
+
+      <!-- 精选案例 -->
+      <div class="section">
+        <h2 class="section-title">精选案例</h2>
+        <div class="featured-grid">
+          <AppCard
+            v-for="app in featuredApps"
+            :key="app.id"
+            :app="app"
+            :featured="true"
+            @view-chat="viewChat"
+            @view-work="viewWork"
+          />
+        </div>
+        <div class="pagination-wrapper">
+          <a-pagination
+            v-model:current="featuredAppsPage.current"
+            v-model:page-size="featuredAppsPage.pageSize"
+            :total="featuredAppsPage.total"
+            :show-size-changer="false"
+            :show-total="(total: number) => `共 ${total} 个案例`"
+            @change="loadFeaturedApps"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.app-home {
-  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 60%);
+#homePage {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 8%, #e2e8f0 20%, #cbd5e1 100%),
+    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+  position: relative;
+  overflow: hidden;
 }
 
-.hero {
-  padding: 56px 16px 32px;
+/* 科技感网格背景 */
+#homePage::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.04) 1px, transparent 1px);
+  background-size:
+    100px 100px,
+    100px 100px,
+    20px 20px,
+    20px 20px;
+  pointer-events: none;
+  animation: gridFloat 20s ease-in-out infinite;
 }
 
-.hero-inner {
-  max-width: 1100px;
+/* 动态光效 */
+#homePage::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(
+      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(59, 130, 246, 0.08) 0%,
+      rgba(139, 92, 246, 0.06) 40%,
+      transparent 80%
+    ),
+    linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.04) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 30%, rgba(139, 92, 246, 0.04) 50%, transparent 70%);
+  pointer-events: none;
+  animation: lightPulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes gridFloat {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(5px, 5px);
+  }
+}
+
+@keyframes lightPulse {
+  0% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0.7;
+  }
+}
+
+.container {
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 移除居中光束效果 */
+
+/* 英雄区域 */
+.hero-section {
   text-align: center;
+  padding: 80px 0 60px;
+  margin-bottom: 28px;
+  color: #1e293b;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse 800px 400px at center, rgba(59, 130, 246, 0.12) 0%, transparent 70%),
+    linear-gradient(45deg, transparent 30%, rgba(139, 92, 246, 0.05) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 30%, rgba(16, 185, 129, 0.04) 50%, transparent 70%);
+  animation: heroGlow 10s ease-in-out infinite alternate;
+}
+
+@keyframes heroGlow {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes rotate {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 .hero-title {
-  font-size: 40px;
-  font-weight: 900;
-  margin-bottom: 10px;
-  color: #0f172a;
+  font-size: 56px;
+  font-weight: 700;
+  margin: 0 0 20px;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -1px;
+  position: relative;
+  z-index: 2;
+  animation: titleShimmer 3s ease-in-out infinite;
 }
 
-.cat-icon {
-  display: inline-block;
-  margin: 0 8px;
-  transform: translateY(3px);
+@keyframes titleShimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-.hero-subtitle {
+.hero-description {
+  font-size: 20px;
+  margin: 0;
+  opacity: 0.8;
   color: #64748b;
-  font-size: 16px;
-  margin-bottom: 24px;
+  position: relative;
+  z-index: 2;
 }
 
-.prompt-card {
-  max-width: 860px;
-  margin: 0 auto;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 16px;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-  padding: 18px;
+/* 输入区域 */
+.input-section {
+  position: relative;
+  margin: 0 auto 24px;
+  max-width: 800px;
 }
 
 .prompt-input {
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.prompt-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 14px;
-}
-
-.list-section {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 22px 16px 52px;
-}
-
-.selected-section {
-  padding-top: 0;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.section-header h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.section-search {
-  display: flex;
-  align-items: center;
-}
-
-.cards-grid {
-  margin-top: 8px;
-}
-
-.app-card {
   border-radius: 16px;
+  border: none;
+  font-size: 16px;
+  padding: 20px 60px 20px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.prompt-input:focus {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.input-actions {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* 快捷按钮 */
+.quick-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 60px;
+  flex-wrap: wrap;
+}
+
+.quick-actions .ant-btn {
+  border-radius: 25px;
+  padding: 8px 20px;
+  height: auto;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #475569;
+  backdrop-filter: blur(15px);
+  transition: all 0.3s;
+  position: relative;
   overflow: hidden;
 }
 
-.cover-wrapper {
-  height: 120px;
-  background: #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cover-img {
+.quick-actions .ant-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
   width: 100%;
-  height: 120px;
-  object-fit: cover;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  transition: left 0.5s;
 }
 
-.cover-placeholder {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(59, 130, 246, 0.25));
+.quick-actions .ant-btn:hover::before {
+  left: 100%;
 }
 
-.app-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
+.quick-actions .ant-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+}
+
+/* 区域标题 */
+.section {
+  margin-bottom: 60px;
+}
+
+.section-title {
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 32px;
+  color: #1e293b;
+}
+
+/* 我的作品网格 */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+/* 精选案例网格 */
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+/* 分页 */
+.pagination-wrapper {
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-weight: 800;
+  margin-top: 32px;
 }
 
-.card-footer {
-  margin-top: 8px;
-  display: flex;
-  justify-content: flex-end;
-}
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 32px;
+  }
 
-.pagination {
-  margin-top: 18px;
-  display: flex;
-  justify-content: flex-end;
+  .hero-description {
+    font-size: 16px;
+  }
+
+  .app-grid,
+  .featured-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
+    justify-content: center;
+  }
 }
 </style>
-

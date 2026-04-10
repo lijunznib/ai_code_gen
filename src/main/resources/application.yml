@@ -1,18 +1,32 @@
 spring:
   application:
     name: li_ai_code_mother
+  #session配置
+  session:
+    store-type: redis
+    #session 30 天过期
+    timeout: 2592000
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/li_ai_code_mother
     username: root
     password: 123456
+  #redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      ttl: 3600 #redis中key的过期时间（s）。
   profiles:
     active: local
 server:
   port: 8123
   servlet:
     context-path: /api
-
+    session:
+      cookie:
+        max-age: 2592000
 #springdoc-openai
 springdoc:
   group-configs:
@@ -25,24 +39,6 @@ knife4j:
   setting:
     language: zh_cn
 
-langchain4j:
-  open-ai:
-    chat-model:
-      base-url: https://coding.dashscope.aliyuncs.com/v1
-      api-key: sk-sp-3c8e6f0adf6f4261bf8879bfac0ec88a
-      model-name: qwen3.5-plus
-      max-tokens: 50000
-      response_format: json_object
-      strict-json-schema: true
-      log-requests: true
-      log-responses: true
-    streaming-chat-model:
-      base-url: https://coding.dashscope.aliyuncs.com/v1
-      api-key: sk-sp-3c8e6f0adf6f4261bf8879bfac0ec88a
-      model-name: qwen3.5-plus
-      max-tokens: 50000
-      log-requests: true
-      log-responses: true
 
 
 

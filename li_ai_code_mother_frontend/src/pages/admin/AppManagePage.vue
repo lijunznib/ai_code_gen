@@ -1,345 +1,309 @@
-<script setup lang="ts">
-import { onMounted, reactive, ref, h } from 'vue'
-import { message, Modal } from 'ant-design-vue'
-import type { ColumnsType } from 'ant-design-vue/es/table'
+<template>
+  <div id="appManagePage">
+    <!-- 搜索表单 -->
+    <a-form layout="inline" :model="searchParams" @finish="doSearch">
+      <a-form-item label="应用名称">
+        <a-input v-model:value="searchParams.appName" placeholder="输入应用名称" />
+      </a-form-item>
+      <a-form-item label="创建者">
+        <a-input v-model:value="searchParams.userId" placeholder="输入用户ID" />
+      </a-form-item>
+      <a-form-item label="生成类型">
+        <a-select
+          v-model:value="searchParams.codeGenType"
+          placeholder="选择生成类型"
+          style="width: 150px"
+        >
+          <a-select-option value="">全部</a-select-option>
+          <a-select-option
+            v-for="option in CODE_GEN_TYPE_OPTIONS"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item>
+        <a-button type="primary" html-type="submit">搜索</a-button>
+      </a-form-item>
+    </a-form>
+    <a-divider />
+
+    <!-- 表格 -->
+    <a-table
+      :columns="columns"
+      :data-source="data"
+      :pagination="pagination"
+      @change="doTableChange"
+      :scroll="{ x: 1200 }"
+    >
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'cover'">
+          <a-image v-if="record.cover" :src="record.cover" :width="80" :height="60" />
+          <div v-else class="no-cover">无封面</div>
+        </template>
+        <template v-else-if="column.dataIndex === 'initPrompt'">
+          <a-tooltip :title="record.initPrompt">
+            <div class="prompt-text">{{ record.initPrompt }}</div>
+          </a-tooltip>
+        </template>
+        <template v-else-if="column.dataIndex === 'codeGenType'">
+          {{ formatCodeGenType(record.codeGenType) }}
+        </template>
+        <template v-else-if="column.dataIndex === 'priority'">
+          <a-tag v-if="record.priority === 99" color="gold">精选</a-tag>
+          <span v-else>{{ record.priority || 0 }}</span>
+        </template>
+        <template v-else-if="column.dataIndex === 'deployedTime'">
+          <span v-if="record.deployedTime">
+            {{ formatTime(record.deployedTime) }}
+          </span>
+          <span v-else class="text-gray">未部署</span>
+        </template>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          {{ formatTime(record.createTime) }}
+        </template>
+        <template v-else-if="column.dataIndex === 'user'">
+          <UserInfo :user="record.user" size="small" />
+        </template>
+        <template v-else-if="column.key === 'action'">
+          <a-space>
+            <a-button type="primary" size="small" @click="editApp(record)"> 编辑 </a-button>
+            <a-button
+              type="default"
+              size="small"
+              @click="toggleFeatured(record)"
+              :class="{ 'featured-btn': record.priority === 99 }"
+            >
+              {{ record.priority === 99 ? '取消精选' : '精选' }}
+            </a-button>
+            <a-popconfirm title="确定要删除这个应用吗？" @confirm="deleteApp(record.id)">
+              <a-button danger size="small">删除</a-button>
+            </a-popconfirm>
+          </a-space>
+        </template>
+      </template>
+    </a-table>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { listAppsByPageByAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController'
+import { message } from 'ant-design-vue'
+import { listAppVoByPageByAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController'
+import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/utils/codeGenTypes'
+import { formatTime } from '@/utils/time'
+import UserInfo from '@/components/UserInfo.vue'
 
 const router = useRouter()
 
-// 表格数据
-const dataSource = ref<API.App[]>([])
-const loading = ref(false)
-const total = ref(0)
-
-// 搜索表单（支持除时间外的字段查询）
-const searchForm = reactive<API.AppAdminQueryRequest>({
-  id: undefined,
-  appName: '',
-  cover: '',
-  initPrompt: '',
-  codeGenType: '',
-  deployKey: '',
-  priority: undefined,
-  userId: undefined,
-  isDelete: undefined,
-  sortField: undefined,
-  sortOrder: 'descend',
-})
-
-// 分页参数
-const pagination = reactive({
-  current: 1,
-  pageSize: 20,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`,
-  pageSizeOptions: ['10', '20', '50', '100', '200'],
-})
-
-const loadApps = async () => {
-  loading.value = true
-  try {
-    const body: API.AppAdminQueryRequest = {
-      pageNum: pagination.current,
-      pageSize: pagination.pageSize,
-      // 字段级查询：由后端 QueryWrapper 决定字符串模糊匹配、数值等值匹配
-      id: searchForm.id && searchForm.id > 0 ? searchForm.id : undefined,
-      appName: searchForm.appName || undefined,
-      cover: searchForm.cover || undefined,
-      initPrompt: searchForm.initPrompt || undefined,
-      codeGenType: searchForm.codeGenType || undefined,
-      deployKey: searchForm.deployKey || undefined,
-      priority: searchForm.priority !== undefined ? searchForm.priority : undefined,
-      userId: searchForm.userId !== undefined ? searchForm.userId : undefined,
-      isDelete: searchForm.isDelete !== undefined ? searchForm.isDelete : undefined,
-      sortField: searchForm.sortField || undefined,
-      sortOrder: searchForm.sortOrder || undefined,
-    }
-    const res = await listAppsByPageByAdmin(body)
-    if (res.data.code === 0 && res.data.data) {
-      dataSource.value = res.data.data.records || []
-      total.value = res.data.data.totalRow || 0
-    } else {
-      message.error(res.data.message || '获取应用列表失败')
-      dataSource.value = []
-      total.value = 0
-    }
-  } catch (e) {
-    console.error(e)
-    message.error('获取应用列表失败，请稍后重试')
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleTableChange = (pag: any) => {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
-  loadApps()
-}
-
-const handleSearch = () => {
-  pagination.current = 1
-  loadApps()
-}
-
-const handleReset = () => {
-  searchForm.id = undefined
-  searchForm.appName = ''
-  searchForm.cover = ''
-  searchForm.initPrompt = ''
-  searchForm.codeGenType = ''
-  searchForm.deployKey = ''
-  searchForm.priority = undefined
-  searchForm.userId = undefined
-  searchForm.isDelete = undefined
-  searchForm.sortField = undefined
-  searchForm.sortOrder = 'descend'
-  pagination.current = 1
-  loadApps()
-}
-
-const handleEdit = (record: API.App) => {
-  if (!record.id) return
-  router.push(`/app/edit/${record.id}`)
-}
-
-const handleDelete = (record: API.App) => {
-  if (!record.id) return
-  Modal.confirm({
-    title: '确认删除应用',
-    content: `确定要删除应用「${record.appName || record.id}」吗？`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
-    onOk: async () => {
-      try {
-        const res = await deleteAppByAdmin({ id: record.id })
-        if (res.data.code === 0) {
-          message.success('删除成功')
-          loadApps()
-        } else {
-          message.error(res.data.message || '删除失败')
-        }
-      } catch (e) {
-        console.error(e)
-        message.error('删除失败，请稍后重试')
-      }
-    },
-  })
-}
-
-const handleSetGood = (record: API.App) => {
-  if (!record.id) return
-  const body: API.AppAdminUpdateRequest = {
-    id: record.id,
-    priority: 99,
-  }
-  Modal.confirm({
-    title: '设置为精选应用',
-    content: `将「${record.appName || record.id}」设置为优先级 99（精选）？`,
-    okText: '确认',
-    onOk: async () => {
-      try {
-        const res = await updateAppByAdmin(body)
-        if (res.data.code === 0) {
-          message.success('设置成功')
-          loadApps()
-        } else {
-          message.error(res.data.message || '设置失败')
-        }
-      } catch (e) {
-        console.error(e)
-        message.error('设置失败，请稍后重试')
-      }
-    },
-  })
-}
-
-const columns: ColumnsType<API.App> = [
+const columns = [
   {
     title: 'ID',
     dataIndex: 'id',
-    key: 'id',
     width: 80,
-  },
-  {
-    title: '封面',
-    dataIndex: 'cover',
-    key: 'cover',
-    width: 100,
-    customRender: ({ record }) => {
-      if (record.cover) {
-        return h('img', {
-          src: record.cover,
-          style: { width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px' },
-        })
-      }
-      return h('span', { style: { color: '#999' } }, '-')
-    },
+    fixed: 'left',
   },
   {
     title: '应用名称',
     dataIndex: 'appName',
-    key: 'appName',
-    ellipsis: true,
-    minWidth: 180,
+    width: 150,
+  },
+  {
+    title: '封面',
+    dataIndex: 'cover',
+    width: 100,
+  },
+  {
+    title: '初始提示词',
+    dataIndex: 'initPrompt',
+    width: 200,
+  },
+  {
+    title: '生成类型',
+    dataIndex: 'codeGenType',
+    width: 100,
   },
   {
     title: '优先级',
     dataIndex: 'priority',
-    key: 'priority',
-    width: 90,
-    customRender: ({ record }) => {
-      const color = record.priority === 99 ? 'red' : '#1890ff'
-      return h(
-        'span',
-        {
-          style: {
-            backgroundColor: color === 'red' ? 'rgba(255,77,79,0.15)' : 'rgba(24,144,255,0.15)',
-            color: color,
-            padding: '2px 8px',
-            borderRadius: '999px',
-            fontSize: '12px',
-            fontWeight: 700,
-          },
-        },
-        record.priority ?? '-',
-      )
-    },
+    width: 80,
   },
   {
-    title: '代码类型',
-    dataIndex: 'codeGenType',
-    key: 'codeGenType',
-    width: 120,
+    title: '部署时间',
+    dataIndex: 'deployedTime',
+    width: 160,
   },
   {
-    title: '部署标识',
-    dataIndex: 'deployKey',
-    key: 'deployKey',
-    width: 140,
-    ellipsis: true,
-  },
-  {
-    title: '创建用户',
-    dataIndex: 'userId',
-    key: 'userId',
+    title: '创建者',
+    dataIndex: 'user',
     width: 120,
   },
   {
     title: '创建时间',
     dataIndex: 'createTime',
-    key: 'createTime',
-    width: 180,
+    width: 160,
   },
   {
     title: '操作',
     key: 'action',
-    width: 240,
+    width: 200,
     fixed: 'right',
-    customRender: ({ record }) => {
-      return h('div', {}, [
-        h(
-          'a',
-          {
-            onClick: () => handleEdit(record),
-            style: { marginRight: '12px' },
-          },
-          '编辑',
-        ),
-        h(
-          'a',
-          {
-            onClick: () => handleSetGood(record),
-            style: { marginRight: '12px' },
-          },
-          '精选',
-        ),
-        h(
-          'a',
-          {
-            onClick: () => handleDelete(record),
-            style: { color: '#ff4d4f' },
-          },
-          '删除',
-        ),
-      ])
-    },
   },
 ]
 
-onMounted(() => {
-  loadApps()
+// 数据
+const data = ref<API.AppVO[]>([])
+const total = ref(0)
+
+// 搜索条件
+const searchParams = reactive<API.AppQueryRequest>({
+  pageNum: 1,
+  pageSize: 10,
 })
+
+// 获取数据
+const fetchData = async () => {
+  try {
+    const res = await listAppVoByPageByAdmin({
+      ...searchParams,
+    })
+    if (res.data.data) {
+      data.value = res.data.data.records ?? []
+      total.value = res.data.data.totalRow ?? 0
+    } else {
+      message.error('获取数据失败，' + res.data.message)
+    }
+  } catch (error) {
+    console.error('获取数据失败：', error)
+    message.error('获取数据失败')
+  }
+}
+
+// 页面加载时请求一次
+onMounted(() => {
+  fetchData()
+})
+
+// 分页参数
+const pagination = computed(() => {
+  return {
+    current: searchParams.pageNum ?? 1,
+    pageSize: searchParams.pageSize ?? 10,
+    total: total.value,
+    showSizeChanger: true,
+    showTotal: (total: number) => `共 ${total} 条`,
+  }
+})
+
+// 表格变化处理
+const doTableChange = (page: { current: number; pageSize: number }) => {
+  searchParams.pageNum = page.current
+  searchParams.pageSize = page.pageSize
+  fetchData()
+}
+
+// 搜索
+const doSearch = () => {
+  // 重置页码
+  searchParams.pageNum = 1
+  fetchData()
+}
+
+// 编辑应用
+const editApp = (app: API.AppVO) => {
+  router.push(`/app/edit/${app.id}`)
+}
+
+// 切换精选状态
+const toggleFeatured = async (app: API.AppVO) => {
+  if (!app.id) return
+
+  const newPriority = app.priority === 99 ? 0 : 99
+
+  try {
+    const res = await updateAppByAdmin({
+      id: app.id,
+      priority: newPriority,
+    })
+
+    if (res.data.code === 0) {
+      message.success(newPriority === 99 ? '已设为精选' : '已取消精选')
+      // 刷新数据
+      fetchData()
+    } else {
+      message.error('操作失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('操作失败：', error)
+    message.error('操作失败')
+  }
+}
+
+// 删除应用
+const deleteApp = async (id: number | undefined) => {
+  if (!id) return
+
+  try {
+    const res = await deleteAppByAdmin({ id })
+    if (res.data.code === 0) {
+      message.success('删除成功')
+      // 刷新数据
+      fetchData()
+    } else {
+      message.error('删除失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('删除失败：', error)
+    message.error('删除失败')
+  }
+}
 </script>
 
-<template>
-  <div class="app-manage-page">
-    <a-card :bordered="false" class="search-card">
-      <a-form layout="inline" :model="searchForm">
-        <a-form-item label="ID">
-          <a-input-number v-model:value="searchForm.id" :min="1" placeholder="可选" />
-        </a-form-item>
-        <a-form-item label="应用名称">
-          <a-input v-model:value="searchForm.appName" placeholder="可模糊匹配" style="width: 160px" allow-clear />
-        </a-form-item>
-        <a-form-item label="封面 URL">
-          <a-input v-model:value="searchForm.cover" placeholder="可模糊匹配" style="width: 200px" allow-clear />
-        </a-form-item>
-        <a-form-item label="代码类型">
-          <a-input v-model:value="searchForm.codeGenType" placeholder="html / multi_file" style="width: 160px" allow-clear />
-        </a-form-item>
-        <a-form-item label="部署标识">
-          <a-input v-model:value="searchForm.deployKey" placeholder="可模糊匹配" style="width: 200px" allow-clear />
-        </a-form-item>
-        <a-form-item label="优先级">
-          <a-input-number v-model:value="searchForm.priority" placeholder="可选" />
-        </a-form-item>
-        <a-form-item label="用户 ID">
-          <a-input-number v-model:value="searchForm.userId" :min="1" placeholder="可选" />
-        </a-form-item>
-        <a-form-item label="是否删除">
-          <a-input-number v-model:value="searchForm.isDelete" :min="0" :max="1" placeholder="可选（0/1）" />
-        </a-form-item>
-        <a-form-item>
-          <a-button type="primary" @click="handleSearch">搜索</a-button>
-          <a-button style="margin-left: 8px" @click="handleReset">重置</a-button>
-        </a-form-item>
-      </a-form>
-    </a-card>
-
-    <a-card :bordered="false" class="table-card" style="margin-top: 16px">
-      <a-table
-        :columns="columns"
-        :data-source="dataSource"
-        :loading="loading"
-        :pagination="{
-          ...pagination,
-          total,
-        }"
-        @change="handleTableChange"
-        row-key="id"
-      />
-    </a-card>
-  </div>
-</template>
-
 <style scoped>
-.app-manage-page {
+#appManagePage {
   padding: 24px;
+  background: white;
+  margin-top: 16px;
 }
 
-.search-card {
-  margin-bottom: 16px;
+.no-cover {
+  width: 80px;
+  height: 60px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 12px;
+  border-radius: 4px;
 }
 
-.table-card {
-  min-height: 400px;
+.prompt-text {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-::deep(.ant-card-body) {
-  padding: 16px;
+.text-gray {
+  color: #999;
+}
+
+.featured-btn {
+  background: #faad14;
+  border-color: #faad14;
+  color: white;
+}
+
+.featured-btn:hover {
+  background: #d48806;
+  border-color: #d48806;
+}
+
+:deep(.ant-table-tbody > tr > td) {
+  vertical-align: middle;
 }
 </style>
-

@@ -8,11 +8,11 @@
         <version>3.5.4</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.yupi</groupId>
-    <artifactId>yu-ai-code-mother</artifactId>
+    <groupId>com.li</groupId>
+    <artifactId>li-ai-code-mother</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>yu-ai-code-mother</name>
-    <description>yu-ai-code-mother</description>
+    <name>li-ai-code-mother</name>
+    <description>li-ai-code-mother</description>
     <url/>
     <licenses>
         <license/>
@@ -65,11 +65,11 @@
             <artifactId>langchain4j-reactor</artifactId>
             <version>1.1.0-beta7</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>dev.langchain4j</groupId>-->
-<!--            <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>-->
-<!--            <version>1.1.0-beta7</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
         <!-- LangGraph4j -->
         <dependency>
             <groupId>org.bsc.langgraph4j</groupId>
@@ -194,6 +194,9 @@
                             <version>1.18.36</version>
                         </path>
                     </annotationProcessorPaths>
+                    <source>21</source>
+                    <target>21</target>
+                    <compilerArgs>--enable-preview</compilerArgs>
                 </configuration>
             </plugin>
             <plugin>

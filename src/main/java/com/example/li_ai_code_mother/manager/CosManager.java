@@ -26,7 +26,7 @@ public class CosManager {
     private COSClient cosClient;
 
     /**
-     * 上传对象
+     * 需要上传的对象
      *
      * @param key  唯一键
      * @param file 文件
