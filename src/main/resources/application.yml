@@ -27,6 +27,8 @@ server:
     session:
       cookie:
         max-age: 2592000
+
+
 #springdoc-openai
 springdoc:
   group-configs:

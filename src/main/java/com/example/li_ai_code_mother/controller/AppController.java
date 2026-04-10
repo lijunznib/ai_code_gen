@@ -53,9 +53,6 @@ public class AppController {
     private UserService userService;
 
     @Resource
-    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
-
-    @Resource
     private ProjectDownloadService projectDownloadService;
 
     /**
