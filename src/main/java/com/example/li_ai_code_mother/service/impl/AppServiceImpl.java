@@ -25,6 +25,7 @@ import com.example.li_ai_code_mother.service.AppService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import cn.hutool.core.util.StrUtil;
@@ -76,6 +77,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private RestClient.Builder builder;
     @Resource
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
+    @Value("${code.deploy-host:http://localhost}")
+    private String deployHost;
+
+
 
     @Override
     public Long createApp(AppAddRequest appAddRequest, User loginUser) {
@@ -246,12 +251,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         updateApp.setDeployedTime(LocalDateTime.now());
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
-        // 10. 得到返回可访问的 URL
-        String appDeployUrl =  String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        // 10. 构建应用访问 URL
+        String appDeployUrl = String.format("%s/%s/", deployHost, deployKey);
         // 11. 异步生成截图并且更新应用封面
         generateAppScreenshotAsync(appId,appDeployUrl);
         return appDeployUrl;
     }
+
 
 
     /**
