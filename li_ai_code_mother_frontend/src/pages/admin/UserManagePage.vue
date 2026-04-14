@@ -1,45 +1,54 @@
 <template>
   <div id="userManagePage">
-    <!-- 搜索表单 -->
-    <a-form layout="inline" :model="searchParams" @finish="doSearch">
-      <a-form-item label="账号">
-        <a-input v-model:value="searchParams.userAccount" placeholder="输入账号" />
-      </a-form-item>
-      <a-form-item label="用户名">
-        <a-input v-model:value="searchParams.userName" placeholder="输入用户名" />
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" html-type="submit">搜索</a-button>
-      </a-form-item>
-    </a-form>
-    <a-divider />
-    <!-- 表格 -->
-    <a-table
-      :columns="columns"
-      :data-source="data"
-      :pagination="pagination"
-      @change="doTableChange"
-    >
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.dataIndex === 'userAvatar'">
-          <a-image :src="record.userAvatar" :width="120" />
-        </template>
-        <template v-else-if="column.dataIndex === 'userRole'">
-          <div v-if="record.userRole === 'admin'">
-            <a-tag color="green">管理员</a-tag>
-          </div>
-          <div v-else>
-            <a-tag color="blue">普通用户</a-tag>
-          </div>
-        </template>
-        <template v-else-if="column.dataIndex === 'createTime'">
-          {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
-        </template>
-        <template v-else-if="column.key === 'action'">
-          <a-button danger @click="doDelete(record.id)">删除</a-button>
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">用户管理</h2>
+        <p class="page-subtitle">管理平台账号、角色与基础资料</p>
+      </div>
+    </div>
+
+    <div class="panel search-panel">
+      <a-form layout="inline" :model="searchParams" @finish="doSearch">
+        <a-form-item label="账号">
+          <a-input v-model:value="searchParams.userAccount" placeholder="输入账号" />
+        </a-form-item>
+        <a-form-item label="用户名">
+          <a-input v-model:value="searchParams.userName" placeholder="输入用户名" />
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" html-type="submit">搜索</a-button>
+        </a-form-item>
+      </a-form>
+    </div>
+
+    <div class="panel table-panel">
+      <a-table
+        :columns="columns"
+        :data-source="data"
+        :pagination="pagination"
+        @change="doTableChange"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'userAvatar'">
+            <a-image :src="record.userAvatar" :width="72" />
+          </template>
+          <template v-else-if="column.dataIndex === 'userRole'">
+            <div v-if="record.userRole === 'admin'">
+              <a-tag color="green">管理员</a-tag>
+            </div>
+            <div v-else>
+              <a-tag color="blue">普通用户</a-tag>
+            </div>
+          </template>
+          <template v-else-if="column.dataIndex === 'createTime'">
+            {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
+          </template>
+          <template v-else-if="column.key === 'action'">
+            <a-button danger @click="doDelete(record.id)">删除</a-button>
         </template>
       </template>
-    </a-table>
+      </a-table>
+    </div>
   </div>
 </template>
 <script lang="ts" setup>
@@ -154,8 +163,70 @@ onMounted(() => {
 
 <style scoped>
 #userManagePage {
-  padding: 24px;
-  background: white;
-  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 28px;
+  color: var(--color-text-primary);
+}
+
+.page-subtitle {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-tertiary);
+}
+
+.panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-default);
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.search-panel {
+  padding: var(--space-5);
+}
+
+.table-panel {
+  padding: var(--space-3);
+}
+
+:deep(.ant-form-item-label > label) {
+  color: var(--color-text-secondary);
+}
+
+:deep(.ant-input),
+:deep(.ant-input-affix-wrapper) {
+  border-radius: var(--radius-sm);
+  border-color: var(--color-border-default);
+  background: color-mix(in srgb, var(--color-bg-surface) 94%, transparent);
+}
+
+:deep(.ant-table-wrapper .ant-table) {
+  background: transparent;
+}
+
+:deep(.ant-table-thead > tr > th) {
+  background: color-mix(in srgb, var(--color-bg-subtle) 60%, transparent);
+  color: var(--color-text-secondary);
+  border-bottom-color: var(--color-border-default);
+}
+
+:deep(.ant-table-tbody > tr > td) {
+  vertical-align: middle;
+  border-bottom-color: var(--color-border-default);
+}
+
+:deep(.ant-table-tbody > tr:hover > td) {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
 }
 </style>

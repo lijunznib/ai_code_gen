@@ -1,67 +1,75 @@
 <template>
   <div id="chatManagePage">
-    <!-- 搜索表单 -->
-    <a-form layout="inline" :model="searchParams" @finish="doSearch">
-      <a-form-item label="消息内容">
-        <a-input v-model:value="searchParams.message" placeholder="输入消息内容" />
-      </a-form-item>
-      <a-form-item label="消息类型">
-        <a-select
-          v-model:value="searchParams.messageType"
-          placeholder="选择消息类型"
-          style="width: 120px"
-        >
-          <a-select-option value="">全部</a-select-option>
-          <a-select-option value="user">用户消息</a-select-option>
-          <a-select-option value="assistant">AI消息</a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item label="应用ID">
-        <a-input v-model:value="searchParams.appId" placeholder="输入应用ID" />
-      </a-form-item>
-      <a-form-item label="用户ID">
-        <a-input v-model:value="searchParams.userId" placeholder="输入用户ID" />
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" html-type="submit">搜索</a-button>
-      </a-form-item>
-    </a-form>
-    <a-divider />
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">对话记录管理</h2>
+        <p class="page-subtitle">检索用户与 AI 对话，查看上下文并快速处理</p>
+      </div>
+    </div>
 
-    <!-- 表格 -->
-    <a-table
-      :columns="columns"
-      :data-source="data"
-      :pagination="pagination"
-      @change="doTableChange"
-      :scroll="{ x: 1400 }"
-    >
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.dataIndex === 'message'">
-          <a-tooltip :title="record.message">
-            <div class="message-text">{{ record.message }}</div>
-          </a-tooltip>
+    <div class="panel search-panel">
+      <a-form layout="inline" :model="searchParams" @finish="doSearch">
+        <a-form-item label="消息内容">
+          <a-input v-model:value="searchParams.message" placeholder="输入消息内容" />
+        </a-form-item>
+        <a-form-item label="消息类型">
+          <a-select
+            v-model:value="searchParams.messageType"
+            placeholder="选择消息类型"
+            style="width: 120px"
+          >
+            <a-select-option value="">全部</a-select-option>
+            <a-select-option value="user">用户消息</a-select-option>
+            <a-select-option value="assistant">AI消息</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="应用ID">
+          <a-input v-model:value="searchParams.appId" placeholder="输入应用ID" />
+        </a-form-item>
+        <a-form-item label="用户ID">
+          <a-input v-model:value="searchParams.userId" placeholder="输入用户ID" />
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" html-type="submit">搜索</a-button>
+        </a-form-item>
+      </a-form>
+    </div>
+
+    <div class="panel table-panel">
+      <a-table
+        :columns="columns"
+        :data-source="data"
+        :pagination="pagination"
+        @change="doTableChange"
+        :scroll="{ x: 1400 }"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'message'">
+            <a-tooltip :title="record.message">
+              <div class="message-text">{{ record.message }}</div>
+            </a-tooltip>
+          </template>
+          <template v-else-if="column.dataIndex === 'messageType'">
+            <a-tag :color="record.messageType === 'user' ? 'blue' : 'green'">
+              {{ record.messageType === 'user' ? '用户消息' : 'AI消息' }}
+            </a-tag>
+          </template>
+          <template v-else-if="column.dataIndex === 'createTime'">
+            {{ formatTime(record.createTime) }}
+          </template>
+          <template v-else-if="column.key === 'action'">
+            <a-space>
+              <a-button type="primary" size="small" @click="viewAppChat(record.appId)">
+                查看对话
+              </a-button>
+              <a-popconfirm title="确定要删除这条消息吗？" @confirm="deleteMessage(record.id)">
+                <a-button danger size="small">删除</a-button>
+              </a-popconfirm>
+            </a-space>
+          </template>
         </template>
-        <template v-else-if="column.dataIndex === 'messageType'">
-          <a-tag :color="record.messageType === 'user' ? 'blue' : 'green'">
-            {{ record.messageType === 'user' ? '用户消息' : 'AI消息' }}
-          </a-tag>
-        </template>
-        <template v-else-if="column.dataIndex === 'createTime'">
-          {{ formatTime(record.createTime) }}
-        </template>
-        <template v-else-if="column.key === 'action'">
-          <a-space>
-            <a-button type="primary" size="small" @click="viewAppChat(record.appId)">
-              查看对话
-            </a-button>
-            <a-popconfirm title="确定要删除这条消息吗？" @confirm="deleteMessage(record.id)">
-              <a-button danger size="small">删除</a-button>
-            </a-popconfirm>
-          </a-space>
-        </template>
-      </template>
-    </a-table>
+      </a-table>
+    </div>
   </div>
 </template>
 
@@ -198,9 +206,41 @@ const deleteMessage = async (id: number | undefined) => {
 
 <style scoped>
 #chatManagePage {
-  padding: 24px;
-  background: white;
-  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 28px;
+  color: var(--color-text-primary);
+}
+
+.page-subtitle {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-tertiary);
+}
+
+.panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-default);
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.search-panel {
+  padding: var(--space-5);
+}
+
+.table-panel {
+  padding: var(--space-3);
 }
 
 .message-text {
@@ -212,5 +252,27 @@ const deleteMessage = async (id: number | undefined) => {
 
 :deep(.ant-table-tbody > tr > td) {
   vertical-align: middle;
+  border-bottom-color: var(--color-border-default);
+}
+
+:deep(.ant-form-item-label > label) {
+  color: var(--color-text-secondary);
+}
+
+:deep(.ant-input),
+:deep(.ant-select-selector) {
+  border-radius: var(--radius-sm) !important;
+  border-color: var(--color-border-default) !important;
+  background: color-mix(in srgb, var(--color-bg-surface) 94%, transparent) !important;
+}
+
+:deep(.ant-table-thead > tr > th) {
+  background: color-mix(in srgb, var(--color-bg-subtle) 60%, transparent);
+  color: var(--color-text-secondary);
+  border-bottom-color: var(--color-border-default);
+}
+
+:deep(.ant-table-tbody > tr:hover > td) {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
 }
 </style>

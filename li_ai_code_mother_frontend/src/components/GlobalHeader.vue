@@ -1,25 +1,27 @@
 <template>
   <a-layout-header class="header">
-    <a-row :wrap="false">
-      <!-- 左侧：Logo和标题 -->
-      <a-col flex="200px">
-        <RouterLink to="/">
+    <a-row :wrap="false" align="middle" class="header-row">
+      <a-col flex="240px">
+        <RouterLink to="/" class="brand-link">
           <div class="header-left">
             <img class="logo" src="@/assets/logo.png" alt="Logo" />
-            <h1 class="site-title">LI NoCode</h1>
+            <div>
+              <h1 class="site-title">LI NoCode</h1>
+              <p class="site-subtitle">AI App Workspace</p>
+            </div>
           </div>
         </RouterLink>
       </a-col>
-      <!-- 中间：导航菜单 -->
       <a-col flex="auto">
-        <a-menu
-          v-model:selectedKeys="selectedKeys"
-          mode="horizontal"
-          :items="menuItems"
-          @click="handleMenuClick"
-        />
+        <div class="menu-shell">
+          <a-menu
+            v-model:selectedKeys="selectedKeys"
+            mode="horizontal"
+            :items="menuItems"
+            @click="handleMenuClick"
+          />
+        </div>
       </a-col>
-      <!-- 右侧：用户操作区域 -->
       <a-col>
         <div class="user-login-status">
           <div v-if="loginUserStore.loginUser.id">
@@ -133,28 +135,87 @@ const doLogout = async () => {
 
 <style scoped>
 .header {
-  background: #fff;
-  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  height: 72px;
+  line-height: 72px;
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  border-bottom: 1px solid var(--color-border-default);
+  backdrop-filter: blur(12px);
+  padding: 0 var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.header-row {
+  height: 100%;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
+}
+
+.brand-link {
+  text-decoration: none;
 }
 
 .logo {
-  height: 48px;
-  width: 48px;
+  height: 42px;
+  width: 42px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .site-title {
   margin: 0;
-  font-size: 18px;
-  color: #1890ff;
+  line-height: 1.2;
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.site-subtitle {
+  margin: 0;
+  line-height: 1.1;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+.menu-shell {
+  padding: 0 var(--space-6);
 }
 
 .ant-menu-horizontal {
   border-bottom: none !important;
+  background: transparent;
+}
+
+:deep(.ant-menu-horizontal > .ant-menu-item-selected) {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+:deep(.ant-menu-horizontal > .ant-menu-item::after) {
+  border-bottom-color: var(--color-primary) !important;
+}
+
+.user-login-status {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+}
+
+:deep(.ant-btn-primary) {
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.ant-btn-primary:hover) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 </style>

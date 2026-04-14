@@ -159,13 +159,12 @@ onMounted(() => {
 <template>
   <div id="homePage">
     <div class="container">
-      <!-- 网站标题和描述 -->
       <div class="hero-section">
+        <div class="hero-badge">AI Website Builder</div>
         <h1 class="hero-title">AI 应用生成平台</h1>
         <p class="hero-description">一句话轻松创建网站应用</p>
       </div>
 
-      <!-- 用户提示词输入框 -->
       <div class="input-section">
         <a-textarea
           v-model:value="userPrompt"
@@ -183,7 +182,6 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 快捷按钮 -->
       <div class="quick-actions">
         <a-button
           type="default"
@@ -223,9 +221,11 @@ onMounted(() => {
         >
       </div>
 
-      <!-- 我的作品 -->
       <div class="section">
-        <h2 class="section-title">我的作品</h2>
+        <div class="section-header">
+          <h2 class="section-title">我的作品</h2>
+          <span class="section-meta">我的应用资产与草稿</span>
+        </div>
         <div class="app-grid">
           <AppCard
             v-for="app in myApps"
@@ -247,9 +247,11 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 精选案例 -->
       <div class="section">
-        <h2 class="section-title">精选案例</h2>
+        <div class="section-header">
+          <h2 class="section-title">精选案例</h2>
+          <span class="section-meta">优质示例与灵感参考</span>
+        </div>
         <div class="featured-grid">
           <AppCard
             v-for="app in featuredApps"
@@ -278,19 +280,13 @@ onMounted(() => {
 <style scoped>
 #homePage {
   width: 100%;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  background:
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 8%, #e2e8f0 20%, #cbd5e1 100%),
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+  margin: 0 auto;
+  min-height: calc(100vh - 72px);
   position: relative;
-  overflow: hidden;
+  color: var(--color-text-primary);
+  overflow: clip;
 }
 
-/* 科技感网格背景 */
 #homePage::before {
   content: '';
   position: absolute;
@@ -298,21 +294,14 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image:
-    linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
-    linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.04) 1px, transparent 1px);
-  background-size:
-    100px 100px,
-    100px 100px,
-    20px 20px,
-    20px 20px;
+  background:
+    radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 28%),
+    radial-gradient(circle at 80% 0%, color-mix(in srgb, var(--color-success) 10%, transparent), transparent 26%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-subtle) 60%, transparent), transparent 55%);
   pointer-events: none;
-  animation: gridFloat 20s ease-in-out infinite;
+  opacity: 0.9;
 }
 
-/* 动态光效 */
 #homePage::after {
   content: '';
   position: absolute;
@@ -320,246 +309,182 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background:
-    radial-gradient(
-      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(59, 130, 246, 0.08) 0%,
-      rgba(139, 92, 246, 0.06) 40%,
-      transparent 80%
-    ),
-    linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.04) 50%, transparent 70%),
-    linear-gradient(-45deg, transparent 30%, rgba(139, 92, 246, 0.04) 50%, transparent 70%);
+  background: radial-gradient(
+    560px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    color-mix(in srgb, var(--color-primary) 12%, transparent) 0%,
+    color-mix(in srgb, var(--color-primary) 4%, transparent) 42%,
+    transparent 78%
+  );
   pointer-events: none;
-  animation: lightPulse 8s ease-in-out infinite alternate;
-}
-
-@keyframes gridFloat {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(5px, 5px);
-  }
-}
-
-@keyframes lightPulse {
-  0% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 0.7;
-  }
+  opacity: 0.8;
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 20px;
+  padding: var(--space-3);
   position: relative;
   z-index: 2;
-  width: 100%;
   box-sizing: border-box;
 }
 
-/* 移除居中光束效果 */
-
-/* 英雄区域 */
 .hero-section {
   text-align: center;
-  padding: 80px 0 60px;
-  margin-bottom: 28px;
-  color: #1e293b;
+  padding: var(--space-10) 0 var(--space-8);
+  margin-bottom: var(--space-4);
   position: relative;
-  overflow: hidden;
 }
 
-.hero-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(ellipse 800px 400px at center, rgba(59, 130, 246, 0.12) 0%, transparent 70%),
-    linear-gradient(45deg, transparent 30%, rgba(139, 92, 246, 0.05) 50%, transparent 70%),
-    linear-gradient(-45deg, transparent 30%, rgba(16, 185, 129, 0.04) 50%, transparent 70%);
-  animation: heroGlow 10s ease-in-out infinite alternate;
-}
-
-@keyframes heroGlow {
-  0% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes rotate {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
+.hero-badge {
+  display: inline-flex;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: var(--font-size-caption);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 
 .hero-title {
-  font-size: 56px;
+  font-size: clamp(32px, 4vw, 50px);
   font-weight: 700;
-  margin: 0 0 20px;
-  line-height: 1.2;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #10b981 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -1px;
-  position: relative;
-  z-index: 2;
-  animation: titleShimmer 3s ease-in-out infinite;
-}
-
-@keyframes titleShimmer {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  margin: var(--space-4) 0 var(--space-3);
+  line-height: 1.15;
+  color: var(--color-text-primary);
 }
 
 .hero-description {
-  font-size: 20px;
+  font-size: 18px;
   margin: 0;
-  opacity: 0.8;
-  color: #64748b;
-  position: relative;
-  z-index: 2;
+  color: var(--color-text-secondary);
 }
 
-/* 输入区域 */
 .input-section {
   position: relative;
-  margin: 0 auto 24px;
+  margin: 0 auto var(--space-6);
   max-width: 800px;
 }
 
 .prompt-input {
-  border-radius: 16px;
-  border: none;
+  border-radius: var(--radius-lg);
   font-size: 16px;
-  padding: 20px 60px 20px 20px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  padding: var(--space-6) 68px var(--space-6) var(--space-5);
+  border: 1px solid var(--color-border-default);
+  background: color-mix(in srgb, var(--color-bg-surface) 95%, transparent);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s ease;
 }
 
-.prompt-input:focus {
-  background: rgba(255, 255, 255, 1);
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
-  transform: translateY(-2px);
+:deep(.prompt-input.ant-input:focus) {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 .input-actions {
   position: absolute;
-  bottom: 12px;
-  right: 12px;
+  bottom: var(--space-4);
+  right: var(--space-4);
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
-/* 快捷按钮 */
+.input-actions .ant-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+}
+
 .quick-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: center;
-  margin-bottom: 60px;
+  margin-bottom: var(--space-10);
   flex-wrap: wrap;
 }
 
 .quick-actions .ant-btn {
-  border-radius: 25px;
-  padding: 8px 20px;
+  border-radius: 999px;
+  padding: var(--space-2) var(--space-4);
   height: auto;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  color: #475569;
-  backdrop-filter: blur(15px);
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
-}
-
-.quick-actions .ant-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
-  transition: left 0.5s;
-}
-
-.quick-actions .ant-btn:hover::before {
-  left: 100%;
+  background: color-mix(in srgb, var(--color-bg-surface) 90%, transparent);
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
 }
 
 .quick-actions .ant-btn:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(59, 130, 246, 0.4);
-  color: #3b82f6;
+  background: color-mix(in srgb, var(--color-bg-surface) 96%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border-default));
+  color: var(--color-primary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
-/* 区域标题 */
 .section {
-  margin-bottom: 60px;
+  margin-bottom: var(--space-10);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-default);
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-6);
+  gap: var(--space-3);
+}
+
+.section-meta {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-caption);
 }
 
 .section-title {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 600;
-  margin-bottom: 32px;
-  color: #1e293b;
+  margin: 0;
+  color: var(--color-text-primary);
 }
 
-/* 我的作品网格 */
 .app-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
 }
 
-/* 精选案例网格 */
 .featured-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
 }
 
-/* 分页 */
 .pagination-wrapper {
   display: flex;
   justify-content: center;
-  margin-top: 32px;
+  margin-top: var(--space-2);
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 32px;
-  }
+:deep(.ant-pagination .ant-pagination-item) {
+  border-color: var(--color-border-default);
+  background: color-mix(in srgb, var(--color-bg-surface) 90%, transparent);
+}
 
+:deep(.ant-pagination .ant-pagination-item-active) {
+  border-color: var(--color-primary);
+}
+
+:deep(.ant-pagination .ant-pagination-item-active a) {
+  color: var(--color-primary);
+}
+
+@media (max-width: 768px) {
   .hero-description {
     font-size: 16px;
   }
@@ -571,6 +496,11 @@ onMounted(() => {
 
   .quick-actions {
     justify-content: center;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>
