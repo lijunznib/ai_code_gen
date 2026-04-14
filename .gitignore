@@ -3590,3 +3590,4 @@ build/
 /node_modules/.package-lock.json
 /test/test.http
 /src/test/java/com/example/li_ai_code_mother/utils/WebScreenshotUtilsTest.java
+/dump.rdb

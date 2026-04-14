@@ -15,6 +15,8 @@ import com.example.li_ai_code_mother.model.enums.ChatHistoryMessageTypeEnum;
 import com.example.li_ai_code_mother.model.enums.CodeGenTypeEnum;
 import com.example.li_ai_code_mother.model.vo.AppVO;
 import com.example.li_ai_code_mother.model.vo.UserVO;
+import com.example.li_ai_code_mother.monitor.MonitorContext;
+import com.example.li_ai_code_mother.monitor.MonitorContextHolder;
 import com.example.li_ai_code_mother.service.ChatHistoryService;
 import com.example.li_ai_code_mother.service.ScreenshotService;
 import com.example.li_ai_code_mother.service.UserService;
@@ -190,10 +192,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         }
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
-        // 6. 调用 AI 生成代码（流式）
+        // 6. 设置监控上下文
+        MonitorContextHolder.setContext(
+                MonitorContext.builder()
+                        .userId(loginUser.getId().toString())
+                        .appId(appId.toString())
+                        .build()
+        );
+        // 7. 调用 AI 生成代码（流式）
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodestream(message, codeGenTypeEnum, appId);
-        // 7. 收集 AI 响应内容并在完成后记录到对话历史(根据对应的流 )
-        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum);
+        // 8. 收集 AI 响应内容并在完成后记录到对话历史
+        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
+                .doFinally(signalType -> {
+                    // 流结束时清理（无论成功/失败/取消）
+                    MonitorContextHolder.clearContext();
+                });
+
 
     }
 
