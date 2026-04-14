@@ -18,6 +18,8 @@ import com.example.li_ai_code_mother.model.entity.App;
 import com.example.li_ai_code_mother.model.entity.User;
 import com.example.li_ai_code_mother.model.enums.CodeGenTypeEnum;
 import com.example.li_ai_code_mother.model.vo.AppVO;
+import com.example.li_ai_code_mother.ratelimter.annotation.RateLimit;
+import com.example.li_ai_code_mother.ratelimter.enums.RateLimitType;
 import com.example.li_ai_code_mother.service.AppService;
 import com.example.li_ai_code_mother.service.ProjectDownloadService;
 import com.example.li_ai_code_mother.service.UserService;
@@ -65,6 +67,7 @@ public class AppController {
      * @return 生成结果流
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RateLimit(limitType = RateLimitType.USER, rate = 5, rateInterval = 60, message = "AI 对话请求过于频繁，请稍后再试")
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        HttpServletRequest request) {
@@ -285,7 +288,7 @@ public class AppController {
     @PostMapping("/good/list/page/vo")
     @Cacheable(
             value = "good_app_page",
-            key = "T(com.yupi.yuaicodemother.utils.CacheKeyUtils).generateKey(#appQueryRequest)",
+            key = "T(com.example.li_ai_code_mother.utils.CacheKeyUtils).generateKey(#appQueryRequest)",
             condition = "#appQueryRequest.pageNum <= 10"
     )
     public BaseResponse<Page<AppVO>> listGoodAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {

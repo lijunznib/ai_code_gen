@@ -37,6 +37,7 @@ public class RoutingAiModelConfig {
     @Scope("prototype")
     public ChatModel routingChatModelPrototype() {
         return OpenAiChatModel.builder()
+                .maxRetries(3)
                 .apiKey(apiKey)
                 .modelName(modelName)
                 .baseUrl(baseUrl)
